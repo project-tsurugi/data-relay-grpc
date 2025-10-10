@@ -1,0 +1,70 @@
+syntax = "proto3";
+package data_relay_grpc.blob_relay;
+
+import "blob_reference.proto";
+
+// request message to download BLOB data by gRPC streaming.
+message GetStreamingRequest {
+
+    // the API schema version.
+    uint64 api_version = 1;
+
+    // the context ID.
+    oneof context_id {
+        // the current session ID.
+        uint64 session_id = 2;
+
+        // the current transaction ID.
+        uint64 transaction_id = 3;
+    }
+
+    // the reference to the BLOB to download.
+    BlobReference blob = 4;
+}
+
+// response message to download BLOB data by gRPC streaming.
+message GetStreamingResponse {
+
+    // the chunk of downloading BLOB data.
+    bytes chunk = 1;
+}
+
+// request message to upload BLOB data by gRPC streaming.
+message PutStreamingRequest {
+
+    // metadata for the request.
+    message Metadata {
+        // the API schema version.
+        uint64 api_version = 1;
+
+        // the current session ID
+        uint64 session_id = 2;
+    }
+
+    // the payload of the BLOB upload request.
+    oneof payload {
+
+        // metadata for the upload request (only for the first chunk).
+        Metadata metadata = 1;
+
+        // the chunk of uploading BLOB data.
+        bytes chunk = 2;
+    }
+}
+
+// response message to upload BLOB data by gRPC streaming.
+message PutStreamingResponse {
+
+    // the reference to the uploaded BLOB.
+    BlobReference blob = 1;
+}
+
+// Transfer BLOB data using gRPC streaming.
+service BlobRelayStreaming {
+
+    // Download BLOB data.
+    rpc Get(GetStreamingRequest) returns (stream GetStreamingResponse);
+
+    // Upload BLOB data.
+    rpc Put(stream PutStreamingRequest) returns (PutStreamingResponse);
+}

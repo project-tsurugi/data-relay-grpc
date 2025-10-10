@@ -1,0 +1,41 @@
+# CMake
+/build*
+
+# MS Office
+~*
+.~*
+
+# Mac
+.DS_Store
+
+# VSCode
+/.vscode/*
+!/.vscode/samples
+
+# CLion
+cmake-build-*
+.idea
+*.tokens
+
+# Eclipse
+/.project
+/.classpath
+/.settings
+/.cproject
+/.externalToolBuilders/
+
+# work in progress files
+*.wip
+
+#GLOBAL
+GPATH
+GRTAGS
+GTAGS
+HTML/
+
+#gdb
+.gdb_history
+.gdb_init
+
+# WSL related files
+*:Zone.Identifier
