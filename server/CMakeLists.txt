@@ -84,6 +84,8 @@ include(CompileOptions)
 include(InstallOptions)
 include(Tests)
 
+add_subdirectory(third_party) # should be before enable_testing()
+
 if (BUILD_TESTS OR BUILD_EXAMPLES)
     enable_testing()
 endif()
@@ -100,9 +102,9 @@ target_include_directories(data-relay-grpc-api
 )
 
 add_subdirectory(src)
-# if(BUILD_TESTS)
-#     add_subdirectory(test)
-# endif()
+if(BUILD_TESTS)
+    add_subdirectory(test)
+endif()
 # if(BUILD_EXAMPLES)
 #     add_subdirectory(examples)
 # endif()

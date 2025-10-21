@@ -1,16 +1,16 @@
 #include <fstream>
 
-#include <data-relay-grpc/blob_relay/blob_session_manager.h>
-#include <data-relay-grpc/blob_relay/local_service_impl.h>
+#include "session_manager.h"
+#include "data-relay-grpc/blob_relay/local_service.h"
 #include "utils.h"
 
 namespace data_relay_grpc::blob_relay {
 
-BlobRelayLocalImpl::BlobRelayLocalImpl(blob_session_manager& session_manager)
+local_service::local_service(blob_session_manager& session_manager)
     : session_manager_(session_manager) {
 }
 
-::grpc::Status BlobRelayLocalImpl::Get([[maybe_unused]] ::grpc::ServerContext* context,
+::grpc::Status local_service::Get([[maybe_unused]] ::grpc::ServerContext* context,
                                        const GetLocalRequest* request,
                                        GetLocalResponse* response) {
     if (!check_api_version(request->api_version())) {
@@ -35,9 +35,9 @@ BlobRelayLocalImpl::BlobRelayLocalImpl(blob_session_manager& session_manager)
     return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "the session has no transaction");
 }
 
-::grpc::Status BlobRelayLocalImpl::Put([[maybe_unused]] ::grpc::ServerContext* context,
-                                       const ::data_relay_grpc::blob_relay::PutLocalRequest* request,
-                                       PutLocalResponse* response) {
+::grpc::Status local_service::Put([[maybe_unused]] ::grpc::ServerContext* context,
+                                  const ::data_relay_grpc::blob_relay::PutLocalRequest* request,
+                                  PutLocalResponse* response) {
     if (!check_api_version(request->api_version())) {
         return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "inappropriate message version");
     }

@@ -43,7 +43,7 @@ public:
     /// @brief the BLOB tag type.
     using blob_tag_type = std::uint64_t;
 
-    blob_session(session_id_type session_id, blob_path_type&& directory, std::optional<blob_session::transaction_id_type> transaction_id_opt)
+    blob_session(session_id_type session_id, blob_path_type& directory, std::optional<blob_session::transaction_id_type> transaction_id_opt)
         : session_id_(session_id), directory_(directory), transaction_id_opt_(transaction_id_opt) {}
 
     std::optional<transaction_id_type> get_transaction_id() {
@@ -51,15 +51,23 @@ public:
     }
 
     std::pair<blob_id_type, std::filesystem::path> create_blob_file() {
-        blob_id_type new_blob_id = blob_id_++;
+        blob_id_type new_blob_id = ++blob_id_;
         std::filesystem::path file_path = directory_;
         file_path /= std::filesystem::path(std::to_string(session_id_) + "_blob_" + std::to_string(new_blob_id));
+        uploads_.emplace(new_blob_id, file_path);
         return { new_blob_id, file_path };
+    }
+
+    std::optional<blob_path_type> blob_path(blob_id_type blob_id) {
+        if (auto&& itr = uploads_.find(blob_id); itr != uploads_.end()) {
+            return itr->second;
+        }
+        return std::nullopt;
     }
 
 private:
     session_id_type session_id_;
-    blob_path_type directory_;
+    blob_path_type& directory_;
     std::atomic<blob_id_type> blob_id_{};
 
     // for download

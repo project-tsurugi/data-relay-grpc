@@ -1,18 +1,18 @@
 #include <fstream>
 
-#include <data-relay-grpc/blob_relay/blob_session_manager.h>
-#include <data-relay-grpc/blob_relay/streaming_service_impl.h>
+#include "session_manager.h"
+#include "streaming_service.h"
 #include "utils.h"
 
 namespace data_relay_grpc::blob_relay {
 
-BlobRelayStreamingImpl::BlobRelayStreamingImpl(blob_session_manager& session_manager, std::size_t chunk_size)
+streaming_service::streaming_service(blob_session_manager& session_manager, std::size_t chunk_size)
     : session_manager_(session_manager), chunk_size_(chunk_size) {
 }
 
-::grpc::Status BlobRelayStreamingImpl::Get([[maybe_unused]] ::grpc::ServerContext* context,
-                                           const GetStreamingRequest* request,
-                                           [[maybe_unused]] ::grpc::ServerWriter< GetStreamingResponse>* writer) {
+::grpc::Status streaming_service::Get(::grpc::ServerContext*,
+                                      const GetStreamingRequest* request,
+                                      ::grpc::ServerWriter< GetStreamingResponse>* writer) {
     if (!check_api_version(request->api_version())) {
         return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "inappropriate message version");
     }
@@ -40,22 +40,24 @@ BlobRelayStreamingImpl::BlobRelayStreamingImpl(blob_session_manager& session_man
                 writer->Write(response);
                 return ::grpc::Status(::grpc::StatusCode::OK, "");
             }
-            response.set_chunk(s);
+            response.set_chunk(s.data(), size);
             writer->Write(response);
-            return ::grpc::Status(::grpc::StatusCode::OK, "");
         }
     }
     return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "the session has no transaction");
 }
 
-::grpc::Status BlobRelayStreamingImpl::Put([[maybe_unused]] ::grpc::ServerContext* context,
-                                           [[maybe_unused]] ::grpc::ServerReader< PutStreamingRequest>* reader,
-                                           [[maybe_unused]] PutStreamingResponse* response) {
+::grpc::Status streaming_service::Put(::grpc::ServerContext*,
+                                      ::grpc::ServerReader< PutStreamingRequest>* reader,
+                                      PutStreamingResponse* response) {
     PutStreamingRequest request;
     if (!reader->Read(&request)) {
         return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "no request");
     }
 
+    if (request.payload_case() != PutStreamingRequest::PayloadCase::kMetadata) {
+        return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "the first request is not metadata");
+    }
     if (!check_api_version(request.metadata().api_version())) {
         return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "inappropriate message version");
     }
@@ -64,10 +66,13 @@ BlobRelayStreamingImpl::BlobRelayStreamingImpl(blob_session_manager& session_man
     blob_session::blob_id_type blob_id = pair.first;
 
     std::ofstream blob_file(pair.second);
-    do {
+    while (reader->Read(&request)) {
+        if (request.payload_case() != PutStreamingRequest::PayloadCase::kChunk) {
+            return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "A subsequent requests is not chunk");
+        }
         auto& chunk = request.chunk();
         blob_file.write(chunk.data(), chunk.size());
-    } while (reader->Read(&request));
+    }
 
     auto* blob = response->mutable_blob();
     blob->set_storage_id(0);

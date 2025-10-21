@@ -1,5 +1,5 @@
 syntax = "proto3";
-package data_relay_grpc.blob_relay;
+package data_relay_grpc.blob_relay.proto;
 
 import "blob_reference.proto";
 
