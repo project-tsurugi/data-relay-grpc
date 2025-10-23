@@ -17,12 +17,12 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
         return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "inappropriate message version");
     }
 
-    auto& session = session_manager_.get_session(request->session_id());
-    if (auto transaction_id_opt = session.get_transaction_id(); transaction_id_opt) {
+    auto& session_impl = session_manager_.get_session_impl(request->session_id());
+    if (auto transaction_id_opt = session_impl.get_transaction_id(); transaction_id_opt) {
         blob_session::transaction_id_type transaction_id = transaction_id_opt.value();
         blob_session::blob_id_type blob_id = request->blob().object_id();
 
-        blob_session::blob_tag_type tag = session_manager_.get_tag(transaction_id, blob_id);
+        blob_session::blob_tag_type tag = session_manager_.get_tag(blob_id, transaction_id);
 
         if (tag != request->blob().tag()) {
             return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "can not find blob with the tag given");
@@ -61,8 +61,8 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
     if (!check_api_version(request.metadata().api_version())) {
         return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "inappropriate message version");
     }
-    auto& session = session_manager_.get_session(request.metadata().session_id());
-    auto pair = session.create_blob_file();
+    auto& session_impl = session_manager_.get_session_impl(request.metadata().session_id());
+    auto pair = session_impl.create_blob_file();
     blob_session::blob_id_type blob_id = pair.first;
 
     std::ofstream blob_file(pair.second);

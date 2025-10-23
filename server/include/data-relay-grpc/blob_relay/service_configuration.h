@@ -27,23 +27,18 @@ namespace data_relay_grpc::blob_relay {
 class service_configuration {
 public:
     service_configuration(
-        bool enabled,
         const std::filesystem::path& session_store,
         std::size_t session_quota_size,
         bool local_enabled,
         bool local_upload_copy_file,
         std::size_t stream_chunk_size)
-        : enabled_(enabled),
-          session_store_(session_store), 
+        : session_store_(session_store), 
           session_quota_size_(session_quota_size),
           local_enabled_(local_enabled),
           local_upload_copy_file_(local_upload_copy_file),
           stream_chunk_size_(stream_chunk_size) {
     }
 
-    bool enabled() {
-        return enabled_;
-    }
     std::filesystem::path session_store() const {
         return session_store_;
     }
@@ -61,7 +56,6 @@ public:
     }
 
 private:
-    bool enabled_;
     std::filesystem::path session_store_;
     std::size_t session_quota_size_;
     bool local_enabled_;

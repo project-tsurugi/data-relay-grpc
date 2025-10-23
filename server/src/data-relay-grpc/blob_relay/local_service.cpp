@@ -17,12 +17,12 @@ local_service::local_service(blob_session_manager& session_manager)
         return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "inappropriate message version");
     }
 
-    auto& session = session_manager_.get_session(request->session_id());
-    if (auto transaction_id_opt = session.get_transaction_id(); transaction_id_opt) {
+    auto& session_impl = session_manager_.get_session_impl(request->session_id());
+    if (auto transaction_id_opt = session_impl.get_transaction_id(); transaction_id_opt) {
         blob_session::transaction_id_type transaction_id = transaction_id_opt.value();
         blob_session::blob_id_type blob_id = request->blob().object_id();
 
-        blob_session::blob_tag_type tag = session_manager_.get_tag(transaction_id, blob_id);
+        blob_session::blob_tag_type tag = session_manager_.get_tag(blob_id, transaction_id);
 
         if (tag != request->blob().tag()) {
             return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "can not find blob with the tag given");
@@ -42,8 +42,8 @@ local_service::local_service(blob_session_manager& session_manager)
         return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "inappropriate message version");
     }
 
-    auto& session = session_manager_.get_session(request->session_id());
-    auto pair = session.create_blob_file();
+    auto& session_impl = session_manager_.get_session_impl(request->session_id());
+    auto pair = session_impl.create_blob_file();
     std::filesystem::copy(std::filesystem::path(request->data().path()), pair.second);
     auto* blob = response->mutable_blob();
     blob->set_storage_id(0);

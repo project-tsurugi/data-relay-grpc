@@ -16,12 +16,12 @@ namespace data_relay_grpc::blob_relay {
 class stream_dl_test : public data_relay_grpc::grpc::grpc_server_test_base {
 protected:
     const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
-    const std::uint64_t session_id_for_test = 12345;
-    const std::uint64_t transaction_id_for_test = 13579;
+    const std::uint64_t transaction_id_for_test = 12345;
     const std::uint64_t blob_id_for_test = 6789;
     const std::uint64_t tag_for_test = 2468;
 
     std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_dl_test")};
+    blob_session* session_{};
 
     void SetUp() override {
         data_relay_grpc::grpc::grpc_server_test_base::SetUp();
@@ -29,7 +29,7 @@ protected:
         set_service_handler([this](::grpc::ServerBuilder& builder) {
             services_.add_blob_relay_services(builder);
         });
-        services_.create_session(session_id_for_test, transaction_id_for_test);
+        session_ = &services_.create_session(transaction_id_for_test);
     }
 
     void TearDown() override {
@@ -63,7 +63,6 @@ private:
         }
     };
     service_configuration conf_for_test {
-        true,             // enabled
         helper_->path(),  // session_store
         0,                // session_quota_size
         false,            // local_enabled
@@ -85,7 +84,7 @@ TEST_F(stream_dl_test, get) {
     BlobRelayStreaming::Stub stub(channel);
     ::grpc::ClientContext context;
     GetStreamingRequest req;
-    req.set_session_id(session_id_for_test);
+    req.set_session_id(session_->session_id());
     auto* blob = req.mutable_blob();
     blob->set_object_id(blob_id_for_test);
     blob->set_tag(tag_for_test);
@@ -114,13 +113,15 @@ TEST_F(stream_dl_test, put) {
     PutStreamingResponse res;
     std::unique_ptr<::grpc::ClientWriter<PutStreamingRequest> > writer(stub.Put(&context, &res));
 
+    // send metadata
     PutStreamingRequest req_metadata;
     auto* metadata = req_metadata.mutable_metadata();
-    metadata->set_session_id(session_id_for_test);
+    metadata->set_session_id(session_->session_id());
     if (!writer->Write(req_metadata)) {
         FAIL();
     }
 
+    // send blob data begin
     PutStreamingRequest req_chunk;
     std::stringstream ss{};
     for (int i = 0; i < 10; i++) {
@@ -132,11 +133,12 @@ TEST_F(stream_dl_test, put) {
     }
     writer->WritesDone();
     ::grpc::Status status = writer->Finish();
+    // send blob data end
 
     auto& session_manager = get_session_manager();
     try {
-        auto& session = session_manager.get_session(session_id_for_test);
-        if (auto path = session.blob_path(res.blob().object_id()); path) {
+        auto& session_impl = session_manager.get_session_impl(session_->session_id());
+        if (auto path = session_impl.find(res.blob().object_id()); path) {
             std::ifstream ifs(path.value());
             std::string s{std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>()};
             EXPECT_EQ(ss.str(), s);

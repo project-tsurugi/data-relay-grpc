@@ -18,9 +18,11 @@
 #include <optional>
 #include <functional>
 #include <filesystem>
+#include <memory>
 
 #include <grpcpp/grpcpp.h>
 
+#include <data-relay-grpc/blob_relay/session.h>
 #include <data-relay-grpc/blob_relay/service_configuration.h>
 
 namespace data_relay_grpc::blob_relay {
@@ -36,8 +38,8 @@ class services {
 public:
     class api {
     public:
-        api(const std::function<std::uint64_t(std::uint64_t, std::uint64_t)> get_tag,
-            const std::function<std::filesystem::path(std::uint64_t)> get_path)
+        api(const std::function<blob_session::blob_tag_type(blob_session::blob_id_type, blob_session::transaction_id_type)> get_tag,
+            const std::function<std::filesystem::path(blob_session::blob_id_type)> get_path)
             : get_tag_(get_tag), get_path_(get_path) {}
 
         api(api const&) = default;
@@ -45,17 +47,17 @@ public:
         api& operator=(api const&) = default;
         api& operator=(api&&) = delete;
 
-        const std::function<std::uint64_t(std::uint64_t, std::uint64_t)>& get_tag() {return get_tag_; }
-        const std::function<std::filesystem::path(std::uint64_t)>& get_path() { return get_path_; }
+        const std::function<blob_session::blob_tag_type(blob_session::blob_id_type, blob_session::transaction_id_type)>& get_tag() {return get_tag_; }
+        const std::function<std::filesystem::path(blob_session::blob_id_type)>& get_path() { return get_path_; }
 
     private:
-        std::function<std::uint64_t(std::uint64_t, std::uint64_t)> get_tag_;
-        std::function<std::filesystem::path(std::uint64_t)> get_path_;
+        std::function<blob_session::blob_tag_type(blob_session::blob_id_type, blob_session::transaction_id_type)> get_tag_;
+        std::function<std::filesystem::path(blob_session::blob_id_type)> get_path_;
     };
 
     services(api const& f, service_configuration const& p);
 
-    void create_session(std::uint64_t, std::optional<std::uint64_t>);
+    blob_session& create_session(std::optional<std::uint64_t>);
     void add_blob_relay_services(::grpc::ServerBuilder&);
 
     // for tests only

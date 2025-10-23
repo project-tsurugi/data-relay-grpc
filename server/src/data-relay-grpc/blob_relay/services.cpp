@@ -30,8 +30,8 @@ services::services(api const& f, service_configuration const& c)
       local_service_(unique_ptr_local_service(new local_service(*session_manager_), [](local_service* e){ delete  e; })) {
 }
 
-void services::create_session(std::uint64_t session_id, std::optional<blob_session::transaction_id_type> transaction_id_opt) {
-    session_manager_->create_session(session_id, transaction_id_opt);
+blob_session& services::create_session(std::optional<blob_session::transaction_id_type> transaction_id_opt) {
+    return session_manager_->create_session(transaction_id_opt);
 }
 
 void services::add_blob_relay_services(grpc::ServerBuilder& builder) {
