@@ -96,17 +96,6 @@ public:
     }
 
     /**
-     * @brief removes the BLOB data file associated with the given BLOB IDs from this session.
-     * @details if there is no BLOB data file associated with the given BLOB ID, this method does nothing.
-     * @param blob_ids_begin the beginning of the range of BLOB IDs to remove.
-     * @param blob_ids_end the end of the range of BLOB IDs to remove.
-     */
-
-// FIXME implement
-//    template<class Iter>
-//    void remove(Iter blob_ids_begin, Iter blob_ids_end);
-
-    /**
       * @brief computes a tag value for the given BLOB ID.
       * @param blob_id the BLOB ID to compute the tag for.
       * @return the computed tag value.
@@ -115,7 +104,6 @@ public:
         (void) blob_id;
         return 0;
     }
-
 
 // internal use
     std::pair<blob_id_type, std::filesystem::path> create_blob_file() {
@@ -140,7 +128,16 @@ private:
 
     std::map<blob_id_type, blob_path_type> blobs_{};
 
+    friend class blob_session;
     friend class blob_session_manager;
+
+    void delete_blob_file(blob_id_type bid) {
+        if (auto itr = blobs_.find(bid); itr != blobs_.end()) {
+            std::filesystem::remove(itr->second);
+            blobs_.erase(itr);
+            return;
+        }
+    }
 };
 
 } // namespace

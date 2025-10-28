@@ -43,9 +43,26 @@ std::vector<blob_session::blob_id_type> blob_session::entries() const {
     return impl_->entries();
 }
 
-// FIXME implement
-//    template<class Iter>
-//    void remove(Iter blob_ids_begin, Iter blob_ids_end);
+template<class Iter>
+void blob_session::remove(Iter blob_ids_begin, Iter blob_ids_end) {
+    throw std::runtime_error("not supported");
+}
+
+using vector_iterator = std::vector<blob_session::blob_id_type>::iterator;
+template <>
+void blob_session::remove<vector_iterator>(vector_iterator blob_ids_begin, vector_iterator blob_ids_end) {
+    for (auto i = blob_ids_begin; i != blob_ids_end; i++) {
+        impl_->delete_blob_file(*i);
+    }
+}
+
+using list_iterator = std::list<blob_session::blob_id_type>::iterator;
+template <>
+void blob_session::remove<list_iterator>(list_iterator blob_ids_begin, list_iterator blob_ids_end) {
+    for (auto i = blob_ids_begin; i != blob_ids_end; i++) {
+        impl_->delete_blob_file(*i);
+    }
+}
 
 blob_session::blob_tag_type blob_session::compute_tag(blob_id_type blob_id) const {
     return impl_->compute_tag(blob_id);
