@@ -2,39 +2,36 @@ file(GLOB SOURCES
         "data-relay-grpc/blob_relay/*.cpp"
 )
 
-# Generate protobuf and gRPC files
-find_program(PROTOBUF_PROTOC protoc)
-find_program(GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
+# Automatically find all .proto files in ${CMAKE_SOURCE_DIR}/../protos/blob_relay/
+set(PROTO_DIR ${CMAKE_SOURCE_DIR}/../protos/blob_relay)
+file(GLOB PROTO_FILES "${PROTO_DIR}/*.proto")
+add_custom_target(build_protos DEPENDS ${PROTO_FILES})
 
-# Automatically find all .proto files in ${CMAKE_SOURCE_DIR}/proto/
-file(GLOB PROTO_FILES "${CMAKE_SOURCE_DIR}/../protos/blob_relay/*.proto")
+#
+# Compile protobuf and grpc files in build_protos target to cpp
+#
+get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
+protobuf_generate(TARGET build_protos LANGUAGE cpp OUT_VAR GENERATED_PROTO_FILES PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/src PROTOS ${PROTO_FILES} APPEND_PATH ${PROTO_DIR})
+protobuf_generate(TARGET build_protos LANGUAGE grpc OUT_VAR GENERATED_GRPC_FILES PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/src PROTOS ${PROTO_FILES} GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}" APPEND_PATH ${PROTO_DIR})
+
 set(PROTO_SRCS)
 set(PROTO_HDRS)
+foreach(FILE ${GENERATED_PROTO_FILES})
+  if(${FILE} MATCHES ".*\.cc")
+    list(APPEND PROTO_SRCS ${FILE})
+  elseif(${FILE} MATCHES ".*\.h")
+    list(APPEND PROTO_HDRS ${FILE})
+  endif()
+endforeach()
+
 set(GRPC_SRCS)
 set(GRPC_HDRS)
-
-foreach(PROTO_FILE ${PROTO_FILES})
-    get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
-    set(PROTO_SRC "${CMAKE_CURRENT_BINARY_DIR}/${PROTO_NAME}.pb.cc")
-    set(PROTO_HDR "${CMAKE_CURRENT_BINARY_DIR}/${PROTO_NAME}.pb.h")
-    set(GRPC_SRC "${CMAKE_CURRENT_BINARY_DIR}/${PROTO_NAME}.grpc.pb.cc")
-    set(GRPC_HDR "${CMAKE_CURRENT_BINARY_DIR}/${PROTO_NAME}.grpc.pb.h")
-    list(APPEND PROTO_SRCS ${PROTO_SRC})
-    list(APPEND PROTO_HDRS ${PROTO_HDR})
-    list(APPEND GRPC_SRCS ${GRPC_SRC})
-    list(APPEND GRPC_HDRS ${GRPC_HDR})
-
-    add_custom_command(
-        OUTPUT ${PROTO_SRC} ${PROTO_HDR} ${GRPC_SRC} ${GRPC_HDR}
-        COMMAND ${PROTOBUF_PROTOC}
-        ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
-             --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
-             -I "${CMAKE_SOURCE_DIR}/../protos/blob_relay"
-             --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN_EXECUTABLE}"
-             "${PROTO_FILE}"
-        DEPENDS ${PROTO_FILE}
-        COMMENT "Generating protobuf and gRPC files for ${PROTO_FILE}"
-    )
+foreach(FILE ${GENERATED_GRPC_FILES})
+  if(${FILE} MATCHES ".*\.cc")
+    list(APPEND PROTO_SRCS ${FILE})
+  elseif(${FILE} MATCHES ".*\.h")
+    list(APPEND PROTO_HDRS ${FILE})
+  endif()
 endforeach()
 
 # Add generated files to sources
@@ -43,6 +40,10 @@ list(APPEND SOURCES ${PROTO_SRCS} ${GRPC_SRCS})
 add_library(${package_name}
         ${SOURCES}
 )
+
+add_dependencies(${package_name}
+        build_protos
+        )
 
 set_target_properties(${package_name}
         PROPERTIES
