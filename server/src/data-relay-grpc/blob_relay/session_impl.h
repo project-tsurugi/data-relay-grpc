@@ -38,8 +38,8 @@ public:
     using blob_path_type = blob_session::blob_path_type;
     using blob_tag_type = blob_session::blob_tag_type;
 
-    blob_session_impl(session_id_type session_id, blob_path_type& directory, std::optional<blob_session::transaction_id_type> transaction_id_opt, blob_session_manager& manager)
-        : session_id_(session_id), directory_(directory), transaction_id_opt_(transaction_id_opt), manager_(manager) {}
+    blob_session_impl(session_id_type session_id, blob_session_store& session_store, std::optional<blob_session::transaction_id_type> transaction_id_opt, blob_session_manager& manager)
+        : session_id_(session_id), session_store_(session_store), transaction_id_opt_(transaction_id_opt), manager_(manager) {}
 
     /**
      * @brief returns the ID of this session.
@@ -64,9 +64,7 @@ public:
      */
     [[nodiscard]] blob_session::blob_id_type add(blob_session::blob_path_type path) {
         blob_id_type new_blob_id = ++blob_id_;
-        std::filesystem::path file_path = directory_;
-        file_path /= path;
-        blobs_.emplace(new_blob_id, file_path);
+        blobs_.emplace(new_blob_id, session_store_.add_blob_file(path));
         return new_blob_id;
     }
 
@@ -108,18 +106,20 @@ public:
 // internal use
     std::pair<blob_id_type, std::filesystem::path> create_blob_file() {
         blob_id_type new_blob_id = ++blob_id_;
-        std::filesystem::path file_path = directory_;
-        file_path /= std::filesystem::path(std::string("upload_") + std::to_string(new_blob_id));
+        auto file_path = session_store_.create_blob_file(new_blob_id);
         blobs_.emplace(new_blob_id, file_path);
         return { new_blob_id, file_path };
     }
     std::optional<transaction_id_type> get_transaction_id() {
         return transaction_id_opt_;
     }
+    bool reserve_session_store(std::size_t size) {
+        return session_store_.reserve(size);
+    }
 
 private:
     session_id_type session_id_;
-    blob_path_type& directory_;
+    blob_session_store& session_store_;
     std::optional<transaction_id_type> transaction_id_opt_;
     blob_session_manager& manager_;
 
@@ -130,10 +130,14 @@ private:
 
     friend class blob_session;
     friend class blob_session_manager;
+    friend class streaming_service;
+    friend class local_service;
 
     void delete_blob_file(blob_id_type bid) {
         if (auto itr = blobs_.find(bid); itr != blobs_.end()) {
-            std::filesystem::remove(itr->second);
+            auto& path = itr->second;
+            session_store_.remove(std::filesystem::file_size(path));
+            std::filesystem::remove(path);
             blobs_.erase(itr);
             return;
         }

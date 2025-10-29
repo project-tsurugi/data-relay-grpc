@@ -13,23 +13,24 @@
 
 namespace data_relay_grpc::blob_relay {
 
-class stream_dl_test : public data_relay_grpc::grpc::grpc_server_test_base {
+class stream_test : public data_relay_grpc::grpc::grpc_server_test_base {
 protected:
     const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
     const std::uint64_t transaction_id_for_test = 12345;
     const std::uint64_t blob_id_for_test = 6789;
     const std::uint64_t tag_for_test = 2468;
 
-    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_dl_test")};
+    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_test")};
     blob_session* session_{};
 
     void SetUp() override {
         data_relay_grpc::grpc::grpc_server_test_base::SetUp();
         helper_->set_up();
+        services_ = std::make_unique<services>(api_for_test, conf_for_test);  // should do after helper_->setup()
         set_service_handler([this](::grpc::ServerBuilder& builder) {
-            services_.add_blob_relay_services(builder);
+            services_->add_blob_relay_services(builder);
         });
-        session_ = &services_.create_session(transaction_id_for_test);
+        session_ = &services_->create_session(transaction_id_for_test);
     }
 
     void TearDown() override {
@@ -47,14 +48,14 @@ protected:
     }
 
     blob_session_manager& get_session_manager() {
-        return  services_.get_session_manager();
+        return  services_->get_session_manager();
     }
 
 private:
     services::api api_for_test{
-        [this](std::uint64_t tid, std::uint64_t bid) {
-            EXPECT_EQ(tid, transaction_id_for_test);
+        [this](std::uint64_t bid, std::uint64_t tid) {
             EXPECT_EQ(bid, blob_id_for_test);
+            EXPECT_EQ(tid, transaction_id_for_test);
             return tag_for_test;
         },
         [this](std::uint64_t bid){
@@ -69,14 +70,14 @@ private:
         false,            // local_upload_copy_file
         32                // stream_chunk_size
     };
-    services services_{api_for_test, conf_for_test};
+    std::unique_ptr<services> services_{};
 
     std::uint64_t session_id_{};
     std::uint64_t transaction_id_{};
     std::uint64_t blob_id_{};
 };
 
-TEST_F(stream_dl_test, get) {
+TEST_F(stream_test, get) {
     start_server();
     set_blob_data();
     
@@ -102,9 +103,8 @@ TEST_F(stream_dl_test, get) {
     EXPECT_EQ(blob_data, s);
 }
 
-TEST_F(stream_dl_test, put) {
+TEST_F(stream_test, put) {
     start_server();
-    set_blob_data();
 
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
     BlobRelayStreaming::Stub stub(channel);
@@ -133,6 +133,7 @@ TEST_F(stream_dl_test, put) {
     }
     writer->WritesDone();
     ::grpc::Status status = writer->Finish();
+    EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
     // send blob data end
 
     auto& session_manager = get_session_manager();

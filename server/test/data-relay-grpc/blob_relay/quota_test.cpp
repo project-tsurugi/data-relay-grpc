@@ -1,0 +1,185 @@
+#include <grpcpp/grpcpp.h>
+#include <gtest/gtest.h>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+#include <exception>
+
+#include "test_root.h"
+#include "data-relay-grpc/grpc/grpc_server_test_base.h"
+
+#include <data-relay-grpc/blob_relay/services.h>
+#include "data-relay-grpc/blob_relay/streaming_service.h"
+
+namespace data_relay_grpc::blob_relay {
+
+class quota_test : public data_relay_grpc::grpc::grpc_server_test_base {
+protected:
+    static constexpr std::size_t ARRAY_SIZE = 100;
+    const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
+    const std::uint64_t quota_size_for_test = 1024;
+    const std::uint64_t transaction_id_for_test = 12345;
+    const std::uint64_t blob_id_for_test = 6789;
+    const std::uint64_t tag_for_test = 2468;
+    const std::uint64_t loop_count = 10;
+
+    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("quota_test")};
+    blob_session* session_{};
+
+    void SetUp() override {
+        data_relay_grpc::grpc::grpc_server_test_base::SetUp();
+        helper_->set_up();
+        services_ = std::make_unique<services>(api_for_test, conf_for_test);  // should do after helper_->setup()
+        set_service_handler([this](::grpc::ServerBuilder& builder) {
+            services_->add_blob_relay_services(builder);
+        });
+        session_ = &services_->create_session(transaction_id_for_test);
+    }
+
+    void TearDown() override {
+        helper_->tear_down();
+        data_relay_grpc::grpc::grpc_server_test_base::TearDown();
+    }
+
+    ::grpc::Status send_blob(PutStreamingResponse& res) {
+        auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+        BlobRelayStreaming::Stub stub(channel);
+        ::grpc::ClientContext context;
+
+        std::unique_ptr<::grpc::ClientWriter<PutStreamingRequest> > writer(stub.Put(&context, &res));
+
+        // send metadata
+        PutStreamingRequest req_metadata;
+        auto* metadata = req_metadata.mutable_metadata();
+        metadata->set_session_id(session_->session_id());
+        if (!writer->Write(req_metadata)) {
+            throw std::runtime_error("test failed");
+        }
+
+        // send blob data begin
+        PutStreamingRequest req_chunk;
+        std::stringstream ss{};
+        for (int i = 0; i < loop_count; i++) {
+            req_chunk.set_chunk(test_partial_blob);
+            ss << test_partial_blob;
+            if (!writer->Write(req_chunk)) {
+                throw std::runtime_error("test failed");
+            }
+        }
+        writer->WritesDone();
+        return writer->Finish();
+    }
+
+    std::size_t file_count() {
+        std::size_t rv{0};
+        for (const std::filesystem::directory_entry& e : std::filesystem::directory_iterator(helper_->path())) {
+            rv++;
+            // std::cout << e.path() << std::endl;
+        }
+        return rv;
+    }
+
+    blob_session_manager& get_session_manager() {
+        return  services_->get_session_manager();
+    }
+
+private:
+    services::api api_for_test{
+        [this](std::uint64_t bid, std::uint64_t tid) {
+            EXPECT_EQ(bid, blob_id_for_test);
+            EXPECT_EQ(tid, transaction_id_for_test);
+            return tag_for_test;
+        },
+        [this](std::uint64_t bid){
+            EXPECT_EQ(bid, blob_id_for_test);
+            return helper_->last_path();
+        }
+    };
+    service_configuration conf_for_test {
+        helper_->path(),      // session_store
+        quota_size_for_test,  // session_quota_size
+        false,                // local_enabled
+        false,                // local_upload_copy_file
+        32                    // stream_chunk_size
+    };
+
+    std::unique_ptr<services> services_{};
+    std::uint64_t session_id_{};
+    std::uint64_t transaction_id_{};
+    std::uint64_t blob_id_{};
+};
+
+TEST_F(quota_test, basic) {
+    start_server();
+
+    std::array<PutStreamingResponse, ARRAY_SIZE> res{};
+    auto blob_size = loop_count * test_partial_blob.length();
+    std::uint64_t blob_count{0};    
+    for (std::uint64_t l = 0; l < (quota_size_for_test - blob_size); l = blob_size) {
+        auto status = send_blob(res.at(blob_count));
+        try {
+            EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
+        } catch (std::runtime_error &ex) {
+            std::cerr << ex.what() << std::endl;
+            FAIL();
+        }
+        blob_count++;
+    }
+    {
+        PutStreamingResponse response;
+        auto status = send_blob(response);
+        try {
+            EXPECT_EQ(status.error_code(), ::grpc::StatusCode::RESOURCE_EXHAUSTED);
+        } catch (std::runtime_error &ex) {
+            std::cerr << ex.what() << std::endl;
+            FAIL();
+        }
+    }
+    EXPECT_EQ(blob_count, file_count());
+}
+
+TEST_F(quota_test, remove) {
+    start_server();
+
+    std::array<PutStreamingResponse, ARRAY_SIZE> res{};
+    std::vector<std::uint64_t> bids(ARRAY_SIZE);
+    auto blob_size = loop_count * test_partial_blob.length();
+    std::uint64_t blob_count{0};    
+    for (std::uint64_t l = 0; l < (quota_size_for_test - blob_size); l = blob_size) {
+        auto status = send_blob(res.at(blob_count));
+        try {
+            EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
+        } catch (std::runtime_error &ex) {
+            std::cerr << ex.what() << std::endl;
+            FAIL();
+        }
+        bids.at(blob_count) = (res.at(blob_count)).blob().object_id();
+        blob_count++;
+    }
+    {
+        auto& session_manager = get_session_manager();
+        try {
+            auto& session = session_manager.get_session(session_->session_id());
+            auto to = bids.begin();
+            to++;
+            session.remove(bids.begin(), to);
+            blob_count--;
+        } catch (std::runtime_error &ex) {
+            FAIL();
+        }
+    }
+    {
+        PutStreamingResponse response;
+        auto status = send_blob(response);
+        try {
+            EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
+            blob_count++;
+        } catch (std::runtime_error &ex) {
+            std::cerr << ex.what() << std::endl;
+            FAIL();
+        }
+    }
+    EXPECT_EQ(blob_count, file_count());
+}
+
+} // namespace

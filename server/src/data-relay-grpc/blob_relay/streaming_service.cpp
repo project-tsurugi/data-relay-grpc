@@ -71,8 +71,14 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
             return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "A subsequent requests is not chunk");
         }
         auto& chunk = request.chunk();
+        if (!session_impl.reserve_session_store(chunk.size())) {
+            blob_file.close();
+            session_impl.delete_blob_file(blob_id);
+            return ::grpc::Status(::grpc::StatusCode::RESOURCE_EXHAUSTED, "session storage usage has reached its limit");
+        }
         blob_file.write(chunk.data(), chunk.size());
     }
+    blob_file.close();
 
     auto* blob = response->mutable_blob();
     blob->set_storage_id(0);

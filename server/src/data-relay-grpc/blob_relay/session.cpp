@@ -51,9 +51,13 @@ void blob_session::remove(Iter blob_ids_begin, Iter blob_ids_end) {
 using vector_iterator = std::vector<blob_session::blob_id_type>::iterator;
 template <>
 void blob_session::remove<vector_iterator>(vector_iterator blob_ids_begin, vector_iterator blob_ids_end) {
-    for (auto i = blob_ids_begin; i != blob_ids_end; i++) {
-        impl_->delete_blob_file(*i);
+    if (std::distance(blob_ids_begin, blob_ids_end) >= 0) {
+        for (auto i = blob_ids_begin; i != blob_ids_end; i++) {
+            impl_->delete_blob_file(*i);
+        }
+        return;
     }
+    throw std::runtime_error("iterator begin is greather than iterator end");
 }
 
 using list_iterator = std::list<blob_session::blob_id_type>::iterator;

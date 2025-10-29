@@ -18,13 +18,17 @@
 
 namespace data_relay_grpc::blob_relay {
 
-blob_session_manager::blob_session_manager(services::api const& api, std::string directory)
-    : api_(api), directory_(directory) {
+blob_session_manager::blob_session_manager(const services::api& api, const std::string& directory, std::size_t quota)
+    : api_(api), session_store_(directory, quota) {
 }
 
 blob_session& blob_session_manager::create_session(std::optional<blob_session::transaction_id_type> transaction_id_opt) {
     auto session_id = ++session_id_;
-    blob_sessions_.emplace(session_id, blob_session(std::make_unique<blob_session_impl>(session_id, directory_, transaction_id_opt, *this)));
+    blob_sessions_.emplace(session_id, blob_session(std::make_unique<blob_session_impl>(session_id, session_store_, transaction_id_opt, *this)));
+    return blob_sessions_.at(session_id);
+}
+
+blob_session& blob_session_manager::get_session(blob_session::session_id_type session_id) {
     return blob_sessions_.at(session_id);
 }
 

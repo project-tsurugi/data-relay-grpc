@@ -22,6 +22,7 @@
 #include <atomic>
 
 #include <data-relay-grpc/blob_relay/services.h>
+#include "session_store.h"
 #include "session_impl.h"
 
 namespace data_relay_grpc::blob_relay {
@@ -31,21 +32,23 @@ namespace data_relay_grpc::blob_relay {
  */
 class blob_session_manager {
 public:
-    blob_session_manager(services::api const&, std::string);
+    blob_session_manager(const services::api&, const std::string&, std::size_t);
 
     blob_session& create_session(std::optional<blob_session::transaction_id_type>);
 
     void dispose(blob_session::session_id_type);
 
-    blob_session_impl& get_session_impl(blob_session::session_id_type);
+    blob_session& get_session(blob_session::session_id_type);
 
     blob_session::blob_tag_type get_tag(blob_session::blob_id_type, blob_session::transaction_id_type);
 
     blob_session::blob_path_type get_path(blob_session::blob_id_type);
-    
-  private:
+
+    blob_session_impl& get_session_impl(blob_session::session_id_type);
+
+private:
     services::api api_;
-    std::filesystem::path directory_;
+    blob_session_store session_store_;
     std::atomic<blob_session::session_id_type> session_id_{};
 
     std::map<blob_session::session_id_type, blob_session> blob_sessions_{};
