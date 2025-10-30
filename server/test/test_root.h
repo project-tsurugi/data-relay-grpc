@@ -42,6 +42,7 @@ class directory_helper {
         try {
             std::filesystem::remove_all(location_);       
         } catch (std::filesystem::filesystem_error &ex) {
+            std::cerr << ex.what() << ":" << location_.string() << std::endl;
             FAIL();
         }
     }

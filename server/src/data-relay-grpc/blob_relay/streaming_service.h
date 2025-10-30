@@ -14,7 +14,7 @@ using data_relay_grpc::blob_relay::proto::GetStreamingRequest;
 using data_relay_grpc::blob_relay::proto::GetStreamingResponse;
 
 class streaming_service final : public BlobRelayStreaming::Service {
-  public:
+public:
     streaming_service(blob_session_manager&, std::size_t);
     ~streaming_service() override = default;
 

@@ -44,7 +44,10 @@ void blob_session_manager::dispose(blob_session::session_id_type session_id) {
 }
 
 blob_session_impl& blob_session_manager::get_session_impl(blob_session::session_id_type session_id) {
-    return *(blob_sessions_.at(session_id).impl_);
+    if (auto itr = blob_sessions_.find(session_id); itr != blob_sessions_.end()) {
+        return *(itr->second.impl_);
+    }
+    throw std::out_of_range("can not find the session specified");
 }
 
 blob_session::blob_tag_type blob_session_manager::get_tag(blob_session::blob_id_type bid, blob_session::transaction_id_type tid) {

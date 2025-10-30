@@ -17,6 +17,7 @@ class quota_test : public data_relay_grpc::grpc::grpc_server_test_base {
 protected:
     static constexpr std::size_t ARRAY_SIZE = 100;
     const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
+    const std::string session_store_name{"session_store"};
     const std::uint64_t quota_size_for_test = 1024;
     const std::uint64_t transaction_id_for_test = 12345;
     const std::uint64_t blob_id_for_test = 6789;
@@ -29,7 +30,17 @@ protected:
     void SetUp() override {
         data_relay_grpc::grpc::grpc_server_test_base::SetUp();
         helper_->set_up();
-        services_ = std::make_unique<services>(api_for_test, conf_for_test);  // should do after helper_->setup()
+        std::filesystem::create_directory(helper_->path(session_store_name));
+        services_ = std::make_unique<services>(
+            api_for_test,
+            service_configuration{
+                helper_->path(session_store_name),  // session_store
+                quota_size_for_test,                // session_quota_size
+                false,                              // local_enabled
+                false,                              // local_upload_copy_file
+                32                                  // stream_chunk_size
+            }
+        );
         set_service_handler([this](::grpc::ServerBuilder& builder) {
             services_->add_blob_relay_services(builder);
         });
@@ -72,7 +83,7 @@ protected:
 
     std::size_t file_count() {
         std::size_t rv{0};
-        for (const std::filesystem::directory_entry& e : std::filesystem::directory_iterator(helper_->path())) {
+        for (const std::filesystem::directory_entry& e : std::filesystem::directory_iterator(helper_->path(session_store_name))) {
             rv++;
             // std::cout << e.path() << std::endl;
         }
@@ -92,15 +103,9 @@ private:
         },
         [this](std::uint64_t bid){
             EXPECT_EQ(bid, blob_id_for_test);
+            std::cout << helper_->last_path().string() << std::endl;
             return helper_->last_path();
         }
-    };
-    service_configuration conf_for_test {
-        helper_->path(),      // session_store
-        quota_size_for_test,  // session_quota_size
-        false,                // local_enabled
-        false,                // local_upload_copy_file
-        32                    // stream_chunk_size
     };
 
     std::unique_ptr<services> services_{};
