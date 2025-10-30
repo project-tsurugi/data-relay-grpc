@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <vector>
 #include <exception>
 
 #include "test_root.h"
@@ -13,18 +14,17 @@
 
 namespace data_relay_grpc::blob_relay {
 
-class quota_test : public data_relay_grpc::grpc::grpc_server_test_base {
+class stream_quota_test : public data_relay_grpc::grpc::grpc_server_test_base {
 protected:
-    static constexpr std::size_t ARRAY_SIZE = 100;
     const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
     const std::string session_store_name{"session_store"};
-    const std::uint64_t quota_size_for_test = 1024;
+    const std::uint64_t quota_size_for_test = 4096;
     const std::uint64_t transaction_id_for_test = 12345;
     const std::uint64_t blob_id_for_test = 6789;
     const std::uint64_t tag_for_test = 2468;
     const std::uint64_t loop_count = 10;
 
-    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("quota_test")};
+    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_quota_test")};
     blob_session* session_{};
 
     void SetUp() override {
@@ -94,6 +94,11 @@ protected:
         return  services_->get_session_manager();
     }
 
+    std::size_t session_store_current_usage() {
+        auto& session_impl = get_session_manager().get_session_impl(session_->session_id());
+        return session_impl.session_store_.current_size_.load();
+    }
+
 private:
     services::api api_for_test{
         [this](std::uint64_t bid, std::uint64_t tid) {
@@ -114,13 +119,13 @@ private:
     std::uint64_t blob_id_{};
 };
 
-TEST_F(quota_test, basic) {
+TEST_F(stream_quota_test, basic) {
     start_server();
 
-    std::array<PutStreamingResponse, ARRAY_SIZE> res{};
     auto blob_size = loop_count * test_partial_blob.length();
-    std::uint64_t blob_count{0};    
-    for (std::uint64_t l = 0; l < (quota_size_for_test - blob_size); l = blob_size) {
+    std::vector<PutStreamingResponse> res{quota_size_for_test / blob_size};
+    std::uint64_t blob_count{0};
+    for (std::uint64_t l = 0; l < (quota_size_for_test - blob_size); l += blob_size) {
         auto status = send_blob(res.at(blob_count));
         try {
             EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
@@ -143,14 +148,15 @@ TEST_F(quota_test, basic) {
     EXPECT_EQ(blob_count, file_count());
 }
 
-TEST_F(quota_test, remove) {
+TEST_F(stream_quota_test, remove) {
     start_server();
 
-    std::array<PutStreamingResponse, ARRAY_SIZE> res{};
-    std::vector<std::uint64_t> bids(ARRAY_SIZE);
     auto blob_size = loop_count * test_partial_blob.length();
+    std::vector<PutStreamingResponse> res{quota_size_for_test / blob_size};
+    std::vector<std::uint64_t> bids{};  // bids{quota_size_for_test / blob_size} does not work, why?
+    bids.resize(quota_size_for_test / blob_size);
     std::uint64_t blob_count{0};    
-    for (std::uint64_t l = 0; l < (quota_size_for_test - blob_size); l = blob_size) {
+    for (std::uint64_t l = 0; l < (quota_size_for_test - blob_size); l += blob_size) {
         auto status = send_blob(res.at(blob_count));
         try {
             EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
@@ -185,6 +191,71 @@ TEST_F(quota_test, remove) {
         }
     }
     EXPECT_EQ(blob_count, file_count());
+}
+
+TEST_F(stream_quota_test, remove_by_entries) {
+    start_server();
+
+    auto blob_size = loop_count * test_partial_blob.length();
+    std::vector<PutStreamingResponse> res{quota_size_for_test / blob_size};
+    std::uint64_t blob_count{0};
+    for (std::uint64_t l = 0; l < (quota_size_for_test - blob_size); l += blob_size) {
+        auto status = send_blob(res.at(blob_count));
+        try {
+            EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
+        } catch (std::runtime_error &ex) {
+            std::cerr << ex.what() << std::endl;
+            FAIL();
+        }
+        blob_count++;
+    }
+    EXPECT_EQ(blob_count, file_count());
+
+    std::vector<blob_session::blob_id_type> entries = session_->entries();
+    EXPECT_EQ(entries.size(), file_count());
+
+    session_->remove(entries.begin(), entries.end());
+    EXPECT_EQ(0, file_count());
+
+    std::vector<blob_session::blob_id_type> entries_after = session_->entries();
+    EXPECT_EQ(entries_after.size(), 0);
+}
+
+TEST_F(stream_quota_test, quota_size) {
+    start_server();
+
+    auto blob_size = loop_count * test_partial_blob.length();
+    std::vector<PutStreamingResponse> res{quota_size_for_test / blob_size};
+    std::uint64_t blob_count{0};
+    for (std::uint64_t l = 0; l < (quota_size_for_test - blob_size); l += blob_size) {
+        auto status = send_blob(res.at(blob_count));
+        try {
+            EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
+        } catch (std::runtime_error &ex) {
+            std::cerr << ex.what() << std::endl;
+            FAIL();
+        }
+        blob_count++;
+    }
+    EXPECT_EQ(blob_count, file_count());
+
+    auto& session_impl = get_session_manager().get_session_impl(session_->session_id());
+    EXPECT_EQ(blob_count * blob_size, session_store_current_usage());
+
+    std::vector<blob_session::blob_id_type> entries = session_->entries();
+    EXPECT_EQ(entries.size(), file_count());
+
+    for (auto&& e: entries) {
+        auto path_opt = session_->find(e);
+        ASSERT_TRUE(path_opt);
+        std::filesystem::remove(path_opt.value());
+    }
+    EXPECT_EQ(0, file_count());
+    EXPECT_EQ(blob_count * blob_size, session_store_current_usage());
+
+    EXPECT_NO_THROW({ session_->remove(entries.begin(), entries.end()); });
+    EXPECT_EQ(0, file_count());
+    EXPECT_EQ(0, session_store_current_usage());
 }
 
 } // namespace

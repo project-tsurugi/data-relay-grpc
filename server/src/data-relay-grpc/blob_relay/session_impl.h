@@ -64,7 +64,7 @@ public:
      */
     [[nodiscard]] blob_session::blob_id_type add(blob_session::blob_path_type path) {
         blob_id_type new_blob_id = ++blob_id_;
-        blobs_.emplace(new_blob_id, session_store_.add_blob_file(path));
+        blobs_.emplace(new_blob_id, std::make_pair<blob_path_type, std::size_t>(session_store_.add_blob_file(path), std::filesystem::file_size(path)));
         return new_blob_id;
     }
 
@@ -76,7 +76,7 @@ public:
      */
     [[nodiscard]] std::optional<blob_session::blob_path_type> find(blob_session::blob_id_type blob_id) const {
         if (auto&& itr = blobs_.find(blob_id); itr != blobs_.end()) {
-            return itr->second;
+            return itr->second.first;
         }
         return std::nullopt;
     }
@@ -106,15 +106,19 @@ public:
 // internal use
     std::pair<blob_id_type, std::filesystem::path> create_blob_file() {
         blob_id_type new_blob_id = ++blob_id_;
-        auto file_path = session_store_.create_blob_file(new_blob_id);
-        blobs_.emplace(new_blob_id, file_path);
+        auto file_path = session_store_.create_blob_file(session_id_, new_blob_id);  // blob_id is unique within a session
+        blobs_.emplace(new_blob_id, std::make_pair<blob_path_type, std::size_t>(blob_path_type(file_path), 0));  // the actual file does not exist
         return { new_blob_id, file_path };
     }
     std::optional<transaction_id_type> get_transaction_id() {
         return transaction_id_opt_;
     }
-    bool reserve_session_store(std::size_t size) {
-        return session_store_.reserve(size);
+    bool reserve_session_store(blob_id_type bid, std::size_t size) {
+        if (session_store_.reserve(size)) {
+            blobs_.at(bid).second += size;
+            return true;
+        }
+        return false;
     }
 
 private:
@@ -126,18 +130,20 @@ private:
     bool valid_{};
     std::atomic<blob_id_type> blob_id_{};
 
-    std::map<blob_id_type, blob_path_type> blobs_{};
+    std::map<blob_id_type, std::pair<blob_path_type, std::size_t>> blobs_{};
 
     friend class blob_session;
     friend class blob_session_manager;
     friend class streaming_service;
     friend class local_service;
+    friend class stream_quota_test; // for test
 
     void delete_blob_file(blob_id_type bid) {
         if (auto itr = blobs_.find(bid); itr != blobs_.end()) {
-            auto& path = itr->second;
-            session_store_.remove(std::filesystem::file_size(path));
-            std::filesystem::remove(path);
+            session_store_.remove(itr->second.second);         // decrease session storage usage counter
+            if (std::filesystem::exists(itr->second.first)) {  // maybe blob file has been moved
+                std::filesystem::remove(itr->second.first);
+            }
             blobs_.erase(itr);
             return;
         }

@@ -52,9 +52,9 @@ public:
     std::filesystem::path add_blob_file(const std::filesystem::path& path) {
         return directory_ / path;
     }
-    std::filesystem::path create_blob_file(std::uint64_t new_blob_id) {
+    std::filesystem::path create_blob_file(std::uint64_t session_id, std::uint64_t new_blob_id) {
         std::filesystem::path file_path = directory_;
-        return directory_ / std::filesystem::path(std::string("upload_") + std::to_string(new_blob_id));
+        return directory_ / std::filesystem::path(std::string("upload_") + std::to_string(session_id) + "_" + std::to_string(new_blob_id));
     }
     bool reserve(std::size_t size) {
         if (quota_ != 0) {
@@ -71,6 +71,8 @@ public:
             current_size_.fetch_sub(size);
         }
     }
+
+    friend class stream_quota_test; // for test
 };
 
 } // namespace

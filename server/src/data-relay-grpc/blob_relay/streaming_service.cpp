@@ -86,7 +86,7 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
             }
             auto& chunk = request.chunk();
             has_chunk = true;
-            if (!session_impl.reserve_session_store(chunk.size())) {
+            if (!session_impl.reserve_session_store(blob_id, chunk.size())) {
                 blob_file.close();
                 session_impl.delete_blob_file(blob_id);
                 return ::grpc::Status(::grpc::StatusCode::RESOURCE_EXHAUSTED, "session storage usage has reached its limit");

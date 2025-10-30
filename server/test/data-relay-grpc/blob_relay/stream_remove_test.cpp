@@ -13,7 +13,7 @@
 
 namespace data_relay_grpc::blob_relay {
 
-class remove_test : public data_relay_grpc::grpc::grpc_server_test_base {
+class stream_remove_test : public data_relay_grpc::grpc::grpc_server_test_base {
 protected:
     static constexpr std::size_t ARRAY_SIZE = 100;
     const std::string session_store_name{"session_store"};
@@ -22,7 +22,7 @@ protected:
     const std::uint64_t blob_id_for_test = 6789;
     const std::uint64_t tag_for_test = 2468;
 
-    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("remove_test")};
+    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_remove_test")};
     blob_session* session_{};
 
     void SetUp() override {
@@ -111,7 +111,7 @@ private:
     std::uint64_t blob_id_{};
 };
 
-TEST_F(remove_test, vector) {
+TEST_F(stream_remove_test, vector) {
     start_server();
 
     std::array<PutStreamingResponse, ARRAY_SIZE> res{};
@@ -132,7 +132,7 @@ TEST_F(remove_test, vector) {
     }
 }
 
-TEST_F(remove_test, vector_reverse) {
+TEST_F(stream_remove_test, vector_reverse) {
     start_server();
 
     std::array<PutStreamingResponse, ARRAY_SIZE> res{};
@@ -157,7 +157,7 @@ TEST_F(remove_test, vector_reverse) {
     }
 }
 
-TEST_F(remove_test, list) {
+TEST_F(stream_remove_test, list) {
     start_server();
 
     std::array<PutStreamingResponse, ARRAY_SIZE> res{};

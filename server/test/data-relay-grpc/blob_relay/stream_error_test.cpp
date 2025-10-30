@@ -13,7 +13,7 @@
 
 namespace data_relay_grpc::blob_relay {
 
-class message_error_test : public data_relay_grpc::grpc::grpc_server_test_base {
+class stream_error_test : public data_relay_grpc::grpc::grpc_server_test_base {
 protected:
     const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
     const std::string session_store_name{"session_store"};
@@ -22,7 +22,7 @@ protected:
     const std::uint64_t tag_for_test = 2468;
     const std::uint64_t api_version = 0;
 
-    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("message_error_test")};
+    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_error_test")};
     blob_session* session_{};
 
     void SetUp() override {
@@ -82,7 +82,7 @@ private:
     std::uint64_t blob_id_{};
 };
 
-TEST_F(message_error_test, get_ok) {
+TEST_F(stream_error_test, get_ok) {
     start_server();
     set_blob_data();
     
@@ -106,7 +106,7 @@ TEST_F(message_error_test, get_ok) {
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
 }
 
-TEST_F(message_error_test, get_api_version) {
+TEST_F(stream_error_test, get_api_version) {
     start_server();
     set_blob_data();
     
@@ -130,7 +130,7 @@ TEST_F(message_error_test, get_api_version) {
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::UNAVAILABLE);
 }
 
-TEST_F(message_error_test, get_no_session) {
+TEST_F(stream_error_test, get_no_session) {
     start_server();
     set_blob_data();
     
@@ -153,7 +153,7 @@ TEST_F(message_error_test, get_no_session) {
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::NOT_FOUND);
 }
 
-TEST_F(message_error_test, get_no_blob_file) {
+TEST_F(stream_error_test, get_no_blob_file) {
     start_server();
     set_blob_data();
     
@@ -177,7 +177,7 @@ TEST_F(message_error_test, get_no_blob_file) {
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::NOT_FOUND);
 }
 
-TEST_F(message_error_test, put_ok) {
+TEST_F(stream_error_test, put_ok) {
     start_server();
 
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
@@ -212,7 +212,7 @@ TEST_F(message_error_test, put_ok) {
     // send blob data end
 }
 
-TEST_F(message_error_test, put_api_version) {
+TEST_F(stream_error_test, put_api_version) {
     start_server();
 
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
@@ -238,7 +238,8 @@ TEST_F(message_error_test, put_api_version) {
         req_chunk.set_chunk(test_partial_blob);
         ss << test_partial_blob;
         if (!writer->Write(req_chunk)) {
-            FAIL();
+            // error
+            break;
         }
     }
     writer->WritesDone();
@@ -247,7 +248,7 @@ TEST_F(message_error_test, put_api_version) {
     // send blob data end
 }
 
-TEST_F(message_error_test, put_no_metadata) {
+TEST_F(stream_error_test, put_no_metadata) {
     start_server();
 
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
@@ -264,7 +265,8 @@ TEST_F(message_error_test, put_no_metadata) {
         req_chunk.set_chunk(test_partial_blob);
         ss << test_partial_blob;
         if (!writer->Write(req_chunk)) {
-            FAIL();
+            // error
+            break;
         }
     }
     writer->WritesDone();
@@ -273,7 +275,7 @@ TEST_F(message_error_test, put_no_metadata) {
     // send blob data end
 }
 
-TEST_F(message_error_test, put_no_session) {
+TEST_F(stream_error_test, put_no_session) {
     start_server();
 
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
@@ -298,7 +300,8 @@ TEST_F(message_error_test, put_no_session) {
         req_chunk.set_chunk(test_partial_blob);
         ss << test_partial_blob;
         if (!writer->Write(req_chunk)) {
-            FAIL();
+            // error
+            break;
         }
     }
     writer->WritesDone();
@@ -307,7 +310,7 @@ TEST_F(message_error_test, put_no_session) {
     // send blob data end
 }
 
-TEST_F(message_error_test, put_no_chunk) {
+TEST_F(stream_error_test, put_no_chunk) {
     start_server();
 
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
@@ -331,7 +334,7 @@ TEST_F(message_error_test, put_no_chunk) {
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::INVALID_ARGUMENT);
 }
 
-TEST_F(message_error_test, put_file_write_permission) {
+TEST_F(stream_error_test, put_file_write_permission) {
     start_server();
 
     // the same as 'chmod -w directory_for_session_store'
@@ -362,7 +365,8 @@ TEST_F(message_error_test, put_file_write_permission) {
         req_chunk.set_chunk(test_partial_blob);
         ss << test_partial_blob;
         if (!writer->Write(req_chunk)) {
-            FAIL();
+            // error
+            break;
         }
     }
     writer->WritesDone();

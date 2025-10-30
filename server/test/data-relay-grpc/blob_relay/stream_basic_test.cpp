@@ -13,7 +13,7 @@
 
 namespace data_relay_grpc::blob_relay {
 
-class stream_test : public data_relay_grpc::grpc::grpc_server_test_base {
+class tream_basic_test : public data_relay_grpc::grpc::grpc_server_test_base {
 protected:
     const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
     const std::string session_store_name{"session_store"};
@@ -21,7 +21,7 @@ protected:
     const std::uint64_t blob_id_for_test = 6789;
     const std::uint64_t tag_for_test = 2468;
 
-    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_test")};
+    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("tream_basic_test")};
     blob_session* session_{};
 
     void SetUp() override {
@@ -81,7 +81,7 @@ private:
     std::uint64_t blob_id_{};
 };
 
-TEST_F(stream_test, get) {
+TEST_F(tream_basic_test, get) {
     start_server();
     set_blob_data();
     
@@ -107,7 +107,7 @@ TEST_F(stream_test, get) {
     EXPECT_EQ(blob_data, s);
 }
 
-TEST_F(stream_test, put) {
+TEST_F(tream_basic_test, put) {
     start_server();
 
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
