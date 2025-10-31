@@ -23,16 +23,22 @@ blob_session_manager::blob_session_manager(const services::api& api, const std::
 }
 
 blob_session& blob_session_manager::create_session(std::optional<blob_session::transaction_id_type> transaction_id_opt) {
+    std::lock_guard<std::mutex> lock(mtx_);
     auto session_id = ++session_id_;
     blob_sessions_.emplace(session_id, blob_session(std::make_unique<blob_session_impl>(session_id, session_store_, transaction_id_opt, *this)));
+    if (transaction_id_opt) {
+        blob_session_ids_.emplace(transaction_id_opt.value(), session_id);
+    }
     return blob_sessions_.at(session_id);
 }
 
 blob_session& blob_session_manager::get_session(blob_session::session_id_type session_id) {
+    std::lock_guard<std::mutex> lock(mtx_);
     return blob_sessions_.at(session_id);
 }
 
 void blob_session_manager::dispose(blob_session::session_id_type session_id) {
+    std::lock_guard<std::mutex> lock(mtx_);
     if (auto&& itrs = blob_sessions_.find(session_id); itrs != blob_sessions_.end()) {
         if(auto transaction_id_opt = itrs->second.impl_->transaction_id_opt_; transaction_id_opt) {
             if (auto&& itrt = blob_session_ids_.find(transaction_id_opt.value()); itrt != blob_session_ids_.end()) {
@@ -44,6 +50,7 @@ void blob_session_manager::dispose(blob_session::session_id_type session_id) {
 }
 
 blob_session_impl& blob_session_manager::get_session_impl(blob_session::session_id_type session_id) {
+    std::lock_guard<std::mutex> lock(mtx_);
     if (auto itr = blob_sessions_.find(session_id); itr != blob_sessions_.end()) {
         return *(itr->second.impl_);
     }

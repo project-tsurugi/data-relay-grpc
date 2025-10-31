@@ -20,6 +20,7 @@
 #include <optional>
 #include <filesystem>
 #include <atomic>
+#include <mutex>
 
 #include <data-relay-grpc/blob_relay/services.h>
 #include "session_store.h"
@@ -53,6 +54,7 @@ private:
 
     std::map<blob_session::session_id_type, blob_session> blob_sessions_{};
     std::map<blob_session::transaction_id_type, blob_session::session_id_type> blob_session_ids_{};
+    mutable std::mutex mtx_{};
 };
 
 } // namespace
