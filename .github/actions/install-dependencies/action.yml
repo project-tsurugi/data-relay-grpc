@@ -1,0 +1,38 @@
+name: Tateyama-Install-Dependencies
+
+inputs:
+  checkout:
+    description: Skip checkout if false
+    default: true
+  path:
+    description: Relative path under $GITHUB_WORKSPACE to place the repository
+    default: build-deps
+  cmake_build_option:
+    type: string
+    default: ''
+  token:
+    type: string
+    default: ''
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Checkout_Limestone
+      uses: actions/checkout@v4
+      if: ${{ inputs.checkout == 'true' }}
+      with:
+        repository: project-tsurugi/limestone
+        path: ${{ inputs.path }}/limestone
+        ref: master
+        token: ${{ inputs.token }}
+
+    - name: Install_Limestone
+      run: |
+        cd ${{ inputs.path }}/limestone
+        rm -fr build
+        mkdir build
+        cd build
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DBUILD_TESTS=OFF -DBUILD_DOCUMENTS=OFF -DBUILD_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/.local ${{ inputs.cmake_build_option }} ..
+        cmake --build . --target install --clean-first
+      shell: bash

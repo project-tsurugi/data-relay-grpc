@@ -10,9 +10,10 @@ add_custom_target(build_protos DEPENDS ${PROTO_FILES})
 #
 # Compile protobuf and grpc files in build_protos target to cpp
 #
-get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
+# Generate protobuf and gRPC files
+find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
 protobuf_generate(TARGET build_protos LANGUAGE cpp OUT_VAR GENERATED_PROTO_FILES PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/src PROTOS ${PROTO_FILES} APPEND_PATH ${PROTO_DIR})
-protobuf_generate(TARGET build_protos LANGUAGE grpc OUT_VAR GENERATED_GRPC_FILES PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/src PROTOS ${PROTO_FILES} GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}" APPEND_PATH ${PROTO_DIR})
+protobuf_generate(TARGET build_protos LANGUAGE grpc OUT_VAR GENERATED_GRPC_FILES PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/src PROTOS ${PROTO_FILES} GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc PLUGIN "protoc-gen-grpc=${GRPC_CPP_PLUGIN}" APPEND_PATH ${PROTO_DIR})
 
 set(PROTO_SRCS)
 set(PROTO_HDRS)

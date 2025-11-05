@@ -63,7 +63,14 @@ find_package(Boost
 
 # gRPC/protobuf
 find_package(Protobuf REQUIRED)
-find_package(gRPC REQUIRED)
+if(USE_GRPC_CONFIG)
+    message(STATUS "Using gRPC CMake Config mode")
+    find_package(gRPC CONFIG REQUIRED)
+else()
+    message(STATUS "Using gRPC pkg-config mode")
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GRPC REQUIRED grpc++)
+endif()
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)

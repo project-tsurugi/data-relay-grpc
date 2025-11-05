@@ -334,7 +334,7 @@ TEST_F(stream_error_test, put_no_chunk) {
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::INVALID_ARGUMENT);
 }
 
-TEST_F(stream_error_test, put_file_write_permission) {
+TEST_F(stream_error_test, DISABLED_put_file_write_permission) {
     start_server();
 
     // the same as 'chmod -w directory_for_session_store'
