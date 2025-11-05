@@ -44,7 +44,7 @@ std::vector<blob_session::blob_id_type> blob_session::entries() const {
 }
 
 template<class Iter>
-void blob_session::remove(Iter blob_ids_begin, Iter blob_ids_end) {
+void blob_session::remove(Iter, Iter) {
     throw std::runtime_error("not supported");
 }
 
