@@ -37,7 +37,6 @@ option(BUILD_STRICT "build with option strictly determine of success" ON)
 option(ENABLE_GOOGLE_PERFTOOLS "Enable Google Perftools" OFF)
 option(PERFORMANCE_TOOLS "Enable tooling to measure engine performance" OFF)
 option(TRACY_ENABLE "enable tracy profiler" OFF)
-option(USE_GRPC_CONFIG "Use CMake Config mode for gRPC instead of pkg-config" OFF)
 
 if (FORCE_INSTALL_RPATH)
     message(DEPRECATION "FORCE_INSTALL_RPATH is obsoleted")
@@ -64,7 +63,7 @@ find_package(Boost
 
 # gRPC/protobuf
 find_package(Protobuf REQUIRED)
-find_package(gRPC CONFIG REQUIRED)
+find_package(gRPC REQUIRED)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
