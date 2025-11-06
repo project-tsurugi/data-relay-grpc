@@ -65,4 +65,8 @@ blob_session::blob_path_type blob_session_manager::get_path(blob_session::blob_i
     return api_.get_path()(bid);
 }
 
+blob_session::blob_id_type blob_session_manager::get_new_blob_id() {
+    return blob_id_.fetch_add(1) + 1;
+}
+
 } // namespace

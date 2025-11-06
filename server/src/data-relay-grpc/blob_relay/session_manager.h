@@ -51,10 +51,14 @@ private:
     services::api api_;
     blob_session_store session_store_;
     std::atomic<blob_session::session_id_type> session_id_{};
+    std::atomic<blob_session::blob_id_type> blob_id_{};
 
     std::map<blob_session::session_id_type, blob_session> blob_sessions_{};
     std::map<blob_session::transaction_id_type, blob_session::session_id_type> blob_session_ids_{};
     mutable std::mutex mtx_{};
+
+    friend class blob_session_impl;
+    blob_session::blob_id_type get_new_blob_id();
 };
 
 } // namespace

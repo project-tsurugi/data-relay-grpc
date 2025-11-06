@@ -40,6 +40,15 @@ public:
         if ((perm & (fs::perms::owner_write | fs::perms::group_write | fs::perms::others_write)) == fs::perms::none) {
             throw std::runtime_error(directory_.string() + " is not writable");
         }
+
+        // remove existing
+        for (const fs::directory_entry& itr : fs::directory_iterator(directory)) {
+            std::error_code ec;
+            fs::remove(itr.path(), ec);
+            if (ec) {
+                throw std::runtime_error(itr.path().string() + "remains in the session store directory (" + directory_.string() + ")");
+            }
+        }
     }
 
   private:
@@ -52,9 +61,9 @@ public:
     std::filesystem::path add_blob_file(const std::filesystem::path& path) {
         return directory_ / path;
     }
-    std::filesystem::path create_blob_file(std::uint64_t session_id, std::uint64_t new_blob_id) {
+    std::filesystem::path create_blob_file(std::uint64_t new_blob_id) {
         std::filesystem::path file_path = directory_;
-        return directory_ / std::filesystem::path(std::string("upload_") + std::to_string(session_id) + "_" + std::to_string(new_blob_id));
+        return directory_ / std::filesystem::path(std::string("upload_") + "_" + std::to_string(new_blob_id));
     }
     bool reserve(std::size_t size) {
         if (quota_ != 0) {

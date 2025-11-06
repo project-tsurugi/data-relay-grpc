@@ -63,12 +63,7 @@ public:
      * @return the BLOB ID assigned to the added BLOB data file.
      * @attention undefined behavior occurs if the path is already added in this session.
      */
-    [[nodiscard]] blob_session::blob_id_type add(blob_session::blob_path_type path) {
-        std::lock_guard<std::mutex> lock(mtx_);
-        blob_id_type new_blob_id = ++blob_id_;
-        blobs_.emplace(new_blob_id, std::make_pair<blob_path_type, std::size_t>(session_store_.add_blob_file(path), std::filesystem::file_size(path)));
-        return new_blob_id;
-    }
+    [[nodiscard]] blob_session::blob_id_type add(blob_session::blob_path_type);
 
     /**
      * @brief find the BLOB data file path associated with the given BLOB ID.
@@ -108,16 +103,12 @@ public:
     }
 
 // internal use
-    std::pair<blob_id_type, std::filesystem::path> create_blob_file() {
-        std::lock_guard<std::mutex> lock(mtx_);
-        blob_id_type new_blob_id = ++blob_id_;
-        auto file_path = session_store_.create_blob_file(session_id_, new_blob_id);  // blob_id is unique within a session
-        blobs_.emplace(new_blob_id, std::make_pair<blob_path_type, std::size_t>(blob_path_type(file_path), 0));  // the actual file does not exist
-        return { new_blob_id, file_path };
-    }
+    std::pair<blob_id_type, std::filesystem::path> create_blob_file();
+
     std::optional<transaction_id_type> get_transaction_id() {
         return transaction_id_opt_;
     }
+
     bool reserve_session_store(blob_id_type bid, std::size_t size) {
         std::lock_guard<std::mutex> lock(mtx_);
         if (session_store_.reserve(size)) {
@@ -134,8 +125,6 @@ private:
     blob_session_manager& manager_;
 
     bool valid_{};
-    std::atomic<blob_id_type> blob_id_{};
-
     std::map<blob_id_type, std::pair<blob_path_type, std::size_t>> blobs_{};
     mutable std::mutex mtx_{};
 
