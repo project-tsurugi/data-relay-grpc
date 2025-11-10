@@ -2,47 +2,38 @@ set(test_target data-relay-grpc-test)
 
 # Generate protobuf and gRPC files
 find_program(PROTOBUF_PROTOC protoc)
-find_program(GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
+find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
 
-# Automatically find all .proto files in ${CMAKE_SOURCE_DIR}/../protos/blob_relay
-file(GLOB PROTO_FILES "${CMAKE_SOURCE_DIR}/../protos/blob_relay/*.proto")
-file(GLOB TEST_PROTO_FILES "data-relay-grpc/grpc/proto/*.proto")
-set(TEST_PROTO_SRCS)
-set(TEST_PROTO_HDRS)
-set(TEST_GRPC_SRCS)
-set(TEST_GRPC_HDRS)
-
-foreach(PROTO_FILE ${TEST_PROTO_FILES})
-    get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
-    set(TEST_PROTO_SRC "${CMAKE_CURRENT_BINARY_DIR}/${PROTO_NAME}.pb.cc")
-    set(TEST_PROTO_HDR "${CMAKE_CURRENT_BINARY_DIR}/${PROTO_NAME}.pb.h")
-    set(TEST_GRPC_SRC "${CMAKE_CURRENT_BINARY_DIR}/${PROTO_NAME}.grpc.pb.cc")
-    set(TEST_GRPC_HDR "${CMAKE_CURRENT_BINARY_DIR}/${PROTO_NAME}.grpc.pb.h")
-    list(APPEND TEST_PROTO_SRCS ${TEST_PROTO_SRC})
-    list(APPEND TEST_PROTO_HDRS ${TEST_PROTO_HDR})
-    list(APPEND TEST_GRPC_SRCS ${TEST_GRPC_SRC})
-    list(APPEND TEST_GRPC_HDRS ${TEST_GRPC_HDR})
-
-    add_custom_command(
-        OUTPUT ${TEST_PROTO_SRC} ${TEST_PROTO_HDR} ${TEST_GRPC_SRC} ${TEST_GRPC_HDR}
-        COMMAND ${PROTOBUF_PROTOC}
-        ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
-             --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
-             -I "${CMAKE_CURRENT_SOURCE_DIR}/data-relay-grpc/grpc/proto"
-             --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN_EXECUTABLE}"
-             "${PROTO_FILE}"
-        DEPENDS ${PROTO_FILE}
-        COMMENT "Generating protobuf and gRPC files for ${PROTO_FILE}"
-    )
+# For protos used in test only
+file(GLOB_RECURSE PROTO_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.proto")
+foreach(FILE ${PROTO_FILES})
+  if(${FILE} MATCHES "data-relay-grpc*")
+    list(APPEND TEST_PROTO_FILES ${FILE})
+  elseif(${FILE} MATCHES "tateyama*")
+    list(APPEND TEST_PROTO_FILES ${FILE})
+  endif()
 endforeach()
 
-# Add generated files to sources
-list(APPEND SOURCES ${TEST_PROTO_SRCS} ${TEST_GRPC_SRCS})
+#
+# Compile protobuf and grpc files in test_protos target to cpp
+#
+add_custom_target(test_protos DEPENDS ${TEST_PROTO_FILES})
+protobuf_generate(TARGET test_protos LANGUAGE cpp OUT_VAR TEST_PROTO_OUT PROTOS ${TEST_PROTO_FILES})
+protobuf_generate(TARGET test_protos LANGUAGE grpc OUT_VAR TEST_GRPC_OUT PROTOS ${TEST_PROTO_FILES} GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc PLUGIN "protoc-gen-grpc=${GRPC_CPP_PLUGIN}")
 
-add_custom_target(build_test_protos DEPENDS ${TEST_PROTO_SRCS} ${TEST_GRPC_SRCS})
+set(TEST_PROTO_SRCS)
+foreach(SRC_FILE ${TEST_PROTO_OUT} ${TEST_GRPC_OUT})
+  if(${SRC_FILE} MATCHES ".*\.cc")
+    list(APPEND TEST_PROTO_SRCS ${SRC_FILE})
+  endif()
+endforeach()
+
+
+# Add generated files to sources
+list(APPEND SOURCES ${TEST_PROTO_SRCS})
 
 set_source_files_properties(
-        ${TEST_PROTO_SRCS} ${TEST_GRPC_SRCS}
+        ${TEST_PROTO_SRCS}
         PROPERTIES
         GENERATED TRUE
         COMPILE_FLAGS -Wno-unused-parameter
@@ -51,17 +42,17 @@ set_source_files_properties(
 add_executable(${test_target}
         main.cpp
         ${TEST_PROTO_SRCS}
-        ${TEST_GRPC_SRCS}
         )
 
 add_dependencies(${test_target}
-        build_test_protos
+        test_protos
         )
 
 target_include_directories(${test_target}
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
         PRIVATE ${CMAKE_BINARY_DIR}/src
         PRIVATE ${CMAKE_BINARY_DIR}/test
+        PRIVATE ${CMAKE_BINARY_DIR}/test/data-relay-grpc/grpc/proto
         )
 
 target_link_libraries(${test_target}
@@ -90,3 +81,66 @@ file(GLOB SRCS
 foreach(file ${SRCS})
     add_test_executable(${file})
 endforeach()
+
+
+#
+# for test client
+#
+# Automatically find all .proto files in ${CMAKE_SOURCE_DIR}/../protos/blob_relay/
+set(PROTO_DIR ${CMAKE_SOURCE_DIR}/../protos/blob_relay)
+file(GLOB CLIENT_PROTO_FILES "${PROTO_DIR}/*.proto")
+add_custom_target(client_protos DEPENDS ${CLIENT_PROTO_FILES})
+
+#
+# Compile protobuf and grpc files in client_protos target to cpp
+#
+# Generate protobuf and gRPC files
+protobuf_generate(TARGET client_protos LANGUAGE cpp OUT_VAR CLIENT_PROTO_OUT PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/test PROTOS ${CLIENT_PROTO_FILES} APPEND_PATH ${PROTO_DIR})
+protobuf_generate(TARGET client_protos LANGUAGE grpc OUT_VAR CLIENT_GRPC_OUT PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/test PROTOS ${CLIENT_PROTO_FILES} GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc PLUGIN "protoc-gen-grpc=${GRPC_CPP_PLUGIN}" APPEND_PATH ${PROTO_DIR})
+
+set(CLIENT_PROTO_SRCS)
+foreach(FILE ${CLIENT_PROTO_OUT} ${CLIENT_GRPC_OUT})
+  if(${FILE} MATCHES ".*\.cc")
+    list(APPEND CLIENT_PROTO_SRCS ${FILE})
+  endif()
+endforeach()
+
+file(GLOB CLIENT_SOURCES
+        "client/*.cpp"
+        "client/tateyama/utils/*.cpp"
+)
+
+add_executable(test_client
+        ${CLIENT_SOURCES}
+        ${TEST_PROTO_SRCS}
+        ${CLIENT_PROTO_SRCS}
+)
+
+add_dependencies(test_client
+        client_protos
+        test_protos
+        )
+
+set_target_properties(test_client
+        PROPERTIES
+                INSTALL_RPATH "\$ORIGIN/../${CMAKE_INSTALL_LIBDIR}"
+                RUNTIME_OUTPUT_NAME "blob_relay_client"
+        )
+
+target_include_directories(test_client
+        PRIVATE ${CMAKE_BINARY_DIR}/src
+        PRIVATE ${CMAKE_BINARY_DIR}/test
+        PRIVATE client
+        )
+
+target_link_libraries(test_client
+        PRIVATE Boost::boost
+        PRIVATE gflags::gflags
+        PRIVATE grpc++
+        PRIVATE grpc
+        PRIVATE gpr
+        PRIVATE protobuf
+        PRIVATE absl_synchronization
+        )
+
+set_compile_options(test_client)
