@@ -232,7 +232,7 @@ public:
         if(regex_match(name, boost::regex(R"([\x20-\x7E\x80-\xFF]*)"))) {
             return name_opt;
         }
-        throw authentication_exception("invalid user name (includes invalid charactor)", tateyama::proto::diagnostics::Code::AUTHENTICATION_ERROR);
+        throw authentication_exception("invalid user name (includes invalid character)", tateyama::proto::diagnostics::Code::AUTHENTICATION_ERROR);
     }
 
 private:

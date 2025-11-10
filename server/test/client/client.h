@@ -15,8 +15,7 @@ using grpc::Status;
 
 namespace data_relay_grpc::blob_relay {
 
-std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
-
+std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n"};
 
 class Client {
 public:

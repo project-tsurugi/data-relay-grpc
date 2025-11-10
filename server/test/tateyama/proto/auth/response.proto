@@ -37,7 +37,7 @@ message AuthInfo {
         // request is successfully completed.
         Success success = 11;
 
-        // authentication informtion is not found.
+        // authentication information is not found.
         NotAuthenticated not_authenticated = 12;
 
         // unknown error was occurred.

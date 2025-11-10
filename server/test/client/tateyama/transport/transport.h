@@ -445,10 +445,12 @@ private:
 
     std::optional<tateyama::proto::endpoint::response::Handshake> handshake() {
         tateyama::proto::endpoint::request::Request request{};
-//        auto* handshake = request.mutable_handshake();
-//        auto* client_information = handshake->mutable_client_information();
-//        auto* wire_information = handshake->mutable_wire_information();
-//        auto* ipc_information = wire_information->mutable_ipc_information();
+        auto* handshake = request.mutable_handshake();
+        auto* client_information = handshake->mutable_client_information();
+        client_information->set_application_name("tateyama-test-client");
+        auto* wire_information = handshake->mutable_wire_information();
+        auto* ipc_information = wire_information->mutable_ipc_information();
+        ipc_information->set_connection_information(std::to_string(getpid()));
 
         return send<tateyama::proto::endpoint::response::Handshake>(request);
     }

@@ -32,7 +32,7 @@ message Request {
         SessionSetVariable session_set_variable = 14;
 
         // retrieve session variables.
-        SessionGetVariable session_get_variable= 15;
+        SessionGetVariable session_get_variable = 15;
     }
     reserved 16 to 99;
 }

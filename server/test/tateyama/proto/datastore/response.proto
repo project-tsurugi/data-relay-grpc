@@ -387,7 +387,7 @@ message RestoreDispose {
         // cannot remove the job by permission error.
         Void permission_error = 14;
 
-        // the restore operation has not been finished yut.
+        // the restore operation has not been finished yet.
         Void not_finished = 15;
 
         // unknown error was occurred.

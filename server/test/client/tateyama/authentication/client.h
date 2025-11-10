@@ -100,7 +100,7 @@ public:
             }
             throw authentication_exception("cannot obtain encryption key from the authentication service due to timeout or service unavailable");
         } catch (std::invalid_argument &ex) {
-            throw authentication_exception(std::string("cannot obtain encryption key from the authentication service, reason is le ") + ex.what());
+            throw authentication_exception(std::string("cannot obtain encryption key from the authentication service, reason is ") + ex.what());
         }
     }
 
@@ -138,7 +138,7 @@ public:
             }
             throw authentication_exception("cannot verify token by the authentication service due to timeout or service unavailable");
         } catch (std::invalid_argument &ex) {
-            throw authentication_exception(std::string("cannot verify token by the authentication service, reason is le ") + ex.what());
+            throw authentication_exception(std::string("cannot verify token by the authentication service, reason is ") + ex.what());
         }
     }
 
@@ -175,7 +175,7 @@ public:
             }
             throw authentication_exception("cannot verify encrypted credential by the authentication service due to timeout or service unavailable");
         } catch (std::invalid_argument &ex) {
-            throw authentication_exception(std::string("cannot verify encrypted credential by the authentication service, reason is le ") + ex.what());
+            throw authentication_exception(std::string("cannot verify encrypted credential by the authentication service, reason is ") + ex.what());
         }
     }
 
