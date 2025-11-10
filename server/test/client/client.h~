@@ -1,0 +1,69 @@
+#pragma once
+
+#include <grpcpp/grpcpp.h>
+
+#include <iostream>
+#include <memory>
+#include <string>
+#include <sstream>
+
+#include "blob_relay/blob_relay_streaming.grpc.pb.h"
+
+using grpc::Channel;
+using grpc::ClientContext;
+using grpc::Status;
+
+namespace data_relay_grpc::blob_relay {
+
+std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
+
+
+class Client {
+public:
+    Client(std::string&& server_address, std::size_t session_id) : server_address_(server_address), session_id_(session_id) {
+    }
+
+    void put() {
+        auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+        proto::BlobRelayStreaming::Stub stub(channel);
+        ::grpc::ClientContext context;
+
+        std::unique_ptr<::grpc::ClientWriter<proto::PutStreamingRequest> > writer(stub.Put(&context, &res_));
+
+        // send metadata
+        proto::PutStreamingRequest req_metadata;
+        auto* metadata = req_metadata.mutable_metadata();
+        metadata->set_session_id(session_id_);
+        if (!writer->Write(req_metadata)) {
+            std::cerr << "error at " << __LINE__ << std::endl;
+            exit(1);
+        }
+
+        // send blob data begin
+        proto::PutStreamingRequest req_chunk;
+        std::stringstream ss{};
+        for (int i = 0; i < 10; i++) {
+            req_chunk.set_chunk(test_partial_blob);
+            ss << test_partial_blob;
+            if (!writer->Write(req_chunk)) {
+                std::cerr << "error at " << __LINE__ << std::endl;
+                exit(2);
+            }
+        }
+        writer->WritesDone();
+        ::grpc::Status status = writer->Finish();
+        if (status.error_code() != ::grpc::StatusCode::OK) {
+            std::cerr << "error at " << __LINE__ << std::endl;
+            std::cerr << status.error_code() << ":" << status.error_message() << ":" << __LINE__ << std::endl;
+            exit(3);
+        }
+    }
+    
+private:
+    std::string server_address_;
+    std::size_t session_id_;
+    std::unique_ptr<proto::BlobRelayStreaming::Stub> stub_;
+    proto::PutStreamingResponse res_;
+};
+
+}  // namespace
