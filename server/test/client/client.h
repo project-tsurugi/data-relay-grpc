@@ -19,7 +19,7 @@ std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvw
 
 class Client {
 public:
-    Client(std::string&& server_address, std::size_t session_id) : server_address_(server_address), session_id_(session_id) {
+    Client(const std::string& server_address, std::size_t session_id) : server_address_(server_address), session_id_(session_id) {
     }
 
     void put() {

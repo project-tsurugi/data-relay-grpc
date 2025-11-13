@@ -1,10 +1,5 @@
 syntax = "proto3";
-
-package tateyama.proto.debug.response;
-
-option java_multiple_files = false;
-option java_package = "com.tsurugidb.debug.proto";
-option java_outer_classname = "DebugResponse";
+package data_relay_grpc.blob_relay.smoke_test.proto;
 
 // empty message
 message Void {}
@@ -15,23 +10,11 @@ message UnknownError {
     string message = 1;
 }
 
-
-// Output a log record on the server side.
-message Logging {
-    reserved 1 to 10;
-
-    // the response body.
-    oneof result {
-        // request is successfully completed.
-        Void success = 12;
-
-        // unknown error was occurred.
-        UnknownError unknown_error = 11;
-    }
-}
-
 // Create blob relay session
-message BlobRelayCreateSession {
+message CreateSessionRequest {
+    // no special member
+}
+message CreateSessionResponse {
     reserved 1 to 10;
 
     // the response body.
@@ -45,7 +28,11 @@ message BlobRelayCreateSession {
 }
 
 // Dispose blob relay session
-message BlobRelayDisposeSession {
+message DisposeSessionRequest {
+    // session id of the target session.
+    uint64 session_id = 1;
+}
+message DisposeSessionResponse {
     reserved 1 to 10;
 
     // the response body.
@@ -56,4 +43,14 @@ message BlobRelayDisposeSession {
         // unknown error was occurred.
         UnknownError unknown_error = 11;
     }
+}
+
+// Support functionality for BlobRelaySmokeTest
+service BlobRelaySmokeTestSupport {
+
+    // Create blob relay session
+    rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+
+    // Upload BLOB data.
+    rpc DisposeSession(DisposeSessionRequest) returns (DisposeSessionResponse);
 }
