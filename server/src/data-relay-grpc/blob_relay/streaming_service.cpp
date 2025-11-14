@@ -24,7 +24,6 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
             blob_session::blob_id_type blob_id = request->blob().object_id();
 
             blob_session::blob_tag_type tag = session_manager_.get_tag(blob_id, transaction_id);
-
             if (tag != request->blob().tag()) {
                 return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "tag mismatch");
             }
@@ -46,6 +45,12 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
                     response.set_chunk(s.data(), size);
                     writer->Write(response);
                 }
+                try {
+                    std::filesystem::remove(path);
+                } catch (std::exception &ex) {
+                    return ::grpc::Status(::grpc::StatusCode::INTERNAL, ex.what());
+                }
+                return ::grpc::Status(::grpc::StatusCode::OK, "");
             } else {
                 return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "there is no blob entry or no file corresponding to the blob id");
             }

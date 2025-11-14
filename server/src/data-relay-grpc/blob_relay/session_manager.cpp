@@ -34,7 +34,10 @@ blob_session& blob_session_manager::create_session(std::optional<blob_session::t
 
 blob_session& blob_session_manager::get_session(blob_session::session_id_type session_id) {
     std::lock_guard<std::mutex> lock(mtx_);
-    return blob_sessions_.at(session_id);
+    if (auto&& itrs = blob_sessions_.find(session_id); itrs != blob_sessions_.end()) {
+        return itrs->second;
+    }
+    throw std::out_of_range("can not find the session specified");
 }
 
 void blob_session_manager::dispose(blob_session::session_id_type session_id) {

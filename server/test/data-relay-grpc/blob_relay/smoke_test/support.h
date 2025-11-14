@@ -15,6 +15,9 @@
  */
 #pragma once
 
+#include <cstdint>
+#include <fstream>
+#include <optional>
 #include <mutex>
 
 #include "data-relay-grpc/blob_relay/session_manager.h"
@@ -24,13 +27,7 @@
 
 namespace data_relay_grpc::blob_relay::smoke_test {
 
-using data_relay_grpc::blob_relay::smoke_test::proto::BlobRelaySmokeTestSupport;
-using data_relay_grpc::blob_relay::smoke_test::proto::CreateSessionRequest;
-using data_relay_grpc::blob_relay::smoke_test::proto::CreateSessionResponse;
-using data_relay_grpc::blob_relay::smoke_test::proto::DisposeSessionRequest;
-using data_relay_grpc::blob_relay::smoke_test::proto::DisposeSessionResponse;
-
-class smoketest_support_service final : public BlobRelaySmokeTestSupport::Service {
+class smoketest_support_service final : public proto::BlobRelaySmokeTestSupport::Service {
 public:
     smoketest_support_service(blob_session_manager& session_manager) : session_manager_(session_manager) {
     }
@@ -42,23 +39,77 @@ public:
     smoketest_support_service& operator=(smoketest_support_service&&) = delete;
 
     ::grpc::Status CreateSession([[maybe_unused]] ::grpc::ServerContext* context,
-                                 [[maybe_unused]] const CreateSessionRequest* request,
-                                 [[maybe_unused]] CreateSessionResponse* response) {
-        auto& session = session_manager_.create_session(std::nullopt);
+                                 const proto::CreateSessionRequest* request,
+                                 proto::CreateSessionResponse* response) {
+        std::optional<std::uint64_t> transaxtion_id_opt{std::nullopt};
+        if (request->context_id_case() == proto::CreateSessionRequest::ContextIdCase::kTransactionId) {
+            transaxtion_id_opt = request->transaction_id();
+        }
+        auto& session = session_manager_.create_session(transaxtion_id_opt);
         response->set_session_id(session.session_id());
         return ::grpc::Status(::grpc::StatusCode::OK, "");
     }
 
     ::grpc::Status DisposeSession([[maybe_unused]] ::grpc::ServerContext* context,
-                                  const DisposeSessionRequest* request,
-                                  [[maybe_unused]] DisposeSessionResponse* response) {
+                                  const proto::DisposeSessionRequest* request,
+                                  [[maybe_unused]] proto::DisposeSessionResponse* response) {
         auto session_id = request->session_id();
         session_manager_.dispose(session_id);
         return ::grpc::Status(::grpc::StatusCode::OK, "");
     }
 
+    ::grpc::Status GetFilePath([[maybe_unused]] ::grpc::ServerContext* context,
+                               const proto::GetFilePathRequest* request,
+                               proto::GetFilePathResponse* response) {
+        auto session_id = request->session_id();
+        auto blob_id = request->blob_id();
+        try {
+            auto& session = session_manager_.get_session(session_id);
+            auto path_opt = session.find(blob_id);
+            if (path_opt) {
+                response->set_path(path_opt.value().string());
+                return ::grpc::Status(::grpc::StatusCode::OK, "");
+            }
+            return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "can not find the blob file");
+        } catch (std::runtime_error &ex) {
+            return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, ex.what());
+        }
+    }
+
+    ::grpc::Status CreateBlobForDownLoad([[maybe_unused]] ::grpc::ServerContext* context,
+                                         const proto::CreateBlobForDownLoadRequest* request,
+                                         proto::CreateBlobForDownLoadResponse* response) {
+        auto transaction_id = request->transaction_id();
+        auto requested_size = static_cast<std::streamsize>(request->size());
+        try {
+            std::uint64_t bid = ++bid_for_download_;
+            auto path = session_manager_.get_path(bid);
+            auto* blob_reference = response->mutable_blob_reference();
+            blob_reference->set_object_id(bid);
+            blob_reference->set_tag(session_manager_.get_tag(bid, transaction_id));
+            auto parent = path.parent_path();
+            if (!std::filesystem::exists(parent)) {
+                std::filesystem::create_directories(parent);
+            }
+
+            std::ofstream blob_file(path);
+            if (!blob_file) {
+                return ::grpc::Status(::grpc::StatusCode::INTERNAL, "can not create a blob file for download test");
+            }
+            while (blob_file.tellp() < requested_size) {
+                blob_file.write(ref_.data(), std::min(requested_size - blob_file.tellp(), static_cast<std::streamsize>(ref_.size())));
+            }
+            blob_file.close();
+            return ::grpc::Status(::grpc::StatusCode::OK, "");
+        } catch (std::runtime_error &ex) {
+            return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, ex.what());
+        }
+    }
+
 private:
     blob_session_manager& session_manager_;
+    std::string ref_{"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n"};
+    std::atomic_uint64_t bid_for_download_{};
 };
 
 } // namespace data_relay_grpc::blob_relay::smoke_test
