@@ -61,4 +61,4 @@ private:
     blob_session_manager& session_manager_;
 };
 
-} // namespace
+} // namespace data_relay_grpc::blob_relay::smoke_test

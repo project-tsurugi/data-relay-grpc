@@ -20,18 +20,21 @@ public:
     ~session() {
         dispose();
     }
-    std::size_t session_id() noexcept {
+    std::size_t session_id() {
         auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
         smoke_test::proto::BlobRelaySmokeTestSupport::Stub stub(channel);
         ::grpc::ClientContext context;
 
         smoke_test::proto::CreateSessionRequest request{};
         smoke_test::proto::CreateSessionResponse response{};
-        Status status = stub.CreateSession(&context, request, &response);
+        ::grpc::Status status = stub.CreateSession(&context, request, &response);
+        if (status.error_code() !=  ::grpc::StatusCode::OK) {
+            throw std::runtime_error(status.error_message());
+        }
 
         return response.session_id();
     }
-    void dispose() const noexcept {
+    void dispose() const {
         if (FLAGS_dispose) {
             auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
             smoke_test::proto::BlobRelaySmokeTestSupport::Stub stub(channel);
@@ -40,7 +43,10 @@ public:
             smoke_test::proto::DisposeSessionRequest request{};
             request.set_session_id(session_id_);
             smoke_test::proto::DisposeSessionResponse response{};
-            Status status = stub.DisposeSession(&context, request, &response);
+            ::grpc::Status status = stub.DisposeSession(&context, request, &response);
+            if (status.error_code() !=  ::grpc::StatusCode::OK) {
+                throw std::runtime_error(status.error_message ());
+            }
         }
     }
 
