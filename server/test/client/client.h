@@ -13,6 +13,7 @@
 
 #include "blob_relay_streaming.grpc.pb.h"
 
+DECLARE_uint64(put_size);
 DECLARE_bool(vervose);
 
 using grpc::Channel;
@@ -22,7 +23,6 @@ using grpc::Status;
 namespace data_relay_grpc::blob_relay {
 
 class Client {
-    constexpr static std::size_t count = 10;
     constexpr static std::size_t buffer_size = 32;
 
     class test_blob {
@@ -49,8 +49,11 @@ class Client {
             p_ += s;
             return rv;
         }
-        std::string& data() {
+        std::string& chunk() {
             return ref_;
+        }
+        std::size_t length() {
+            return ref_.length();
         }
 
     private:
@@ -81,8 +84,11 @@ public:
 
         // send blob data begin
         proto::PutStreamingRequest req_chunk;
-        for (std::size_t i = 0; i < count; i++) {
-            req_chunk.set_chunk(reference_.data());
+        std::size_t transfered_size{};
+        while (transfered_size < FLAGS_put_size) {
+            std::size_t size = std::min(reference_.length(), FLAGS_put_size - transfered_size);
+            req_chunk.set_chunk(reference_.chunk().data(), size);
+            transfered_size += size;
             if (!writer->Write(req_chunk)) {
                 throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
             }

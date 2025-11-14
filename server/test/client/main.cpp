@@ -12,7 +12,8 @@ DEFINE_string(dbname, "tsurugi", "the database name");
 DEFINE_int32(threads, 0, "the number of test threads");
 DEFINE_bool(dispose, true, "dispose the put blob file at the end of the session");
 DEFINE_bool(loop, false, "loop the put operation forever");
-DEFINE_int64(get_size, 0, "file size for Get operarion");
+DEFINE_uint64(put_size, 0, "blob size for Put operarion");
+DEFINE_uint64(get_size, 0, "blob size for Get operarion");
 DEFINE_bool(vervose, false, "print vervose log");
 
 static std::vector<std::thread> threads{};
