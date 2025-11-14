@@ -40,4 +40,5 @@ The initial version number for each message is 1.
 
 ## Build Integration
 
-Protocol buffer files are automatically compiled during the build process.
+- for server
+  - see [server/README.md](server/README.md)
