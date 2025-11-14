@@ -37,6 +37,8 @@ option(BUILD_STRICT "build with option strictly determine of success" ON)
 option(ENABLE_GOOGLE_PERFTOOLS "Enable Google Perftools" OFF)
 option(PERFORMANCE_TOOLS "Enable tooling to measure engine performance" OFF)
 option(TRACY_ENABLE "enable tracy profiler" OFF)
+option(USE_GRPC_CONFIG "Use CMake Config mode for gRPC instead of pkg-config" OFF)
+option(SMOKE_TEST_SUPPORT "Include smoke test support functionalities" ON)  # FIXME make this OFF
 
 if (FORCE_INSTALL_RPATH)
     message(DEPRECATION "FORCE_INSTALL_RPATH is obsoleted")

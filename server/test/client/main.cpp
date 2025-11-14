@@ -20,8 +20,9 @@ static void signal_handler([[maybe_unused]] int sig) {
 
 void put() {
     while (true) {
-        tateyama::session session{};
-        data_relay_grpc::blob_relay::Client client("localhost:50051", session.session_id());
+        std::string server_address{"localhost:50051"};
+        data_relay_grpc::blob_relay::session session(server_address);
+        data_relay_grpc::blob_relay::Client client(server_address, session.session_id());
 
         client.put();
         if (FLAGS_loop) {

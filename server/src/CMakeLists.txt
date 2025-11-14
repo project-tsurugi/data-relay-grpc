@@ -37,6 +37,9 @@ endforeach()
 
 # Add generated files to sources
 list(APPEND SOURCES ${PROTO_SRCS} ${GRPC_SRCS})
+if(SMOKE_TEST_SUPPORT)
+    list(APPEND SOURCES ${CMAKE_BINARY_DIR}/src/blob_relay_smoke_test.pb.cc ${CMAKE_BINARY_DIR}/src/blob_relay_smoke_test.grpc.pb.cc)
+endif()
 
 add_library(${package_name}
         ${SOURCES}
@@ -70,15 +73,21 @@ target_link_libraries(${package_name}
         PRIVATE limestone
 )
 
-if (ENABLE_ALTIMETER)
-    target_link_libraries(${package_name}
-        PRIVATE altimeter
-    )
-endif()
-
 set_compile_options(${package_name})
 
 install_custom(${package_name} ${export_name})
+
+if(SMOKE_TEST_SUPPORT)
+    set(SMOKETEST_PROTO_DIR ${CMAKE_SOURCE_DIR}/test/data-relay-grpc/blob_relay/smoke_test/proto)
+    file(GLOB SMOKETEST_PROTO ${SMOKETEST_PROTO_DIR}/*.proto)
+    protobuf_generate(TARGET build_protos LANGUAGE cpp PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/src PROTOS ${SMOKETEST_PROTO} APPEND_PATH ${SMOKETEST_PROTO_DIR})
+    protobuf_generate(TARGET build_protos LANGUAGE grpc PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/src PROTOS ${SMOKETEST_PROTO} GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc PLUGIN "protoc-gen-grpc=${GRPC_CPP_PLUGIN}"  APPEND_PATH ${SMOKETEST_PROTO_DIR})
+    target_include_directories(${package_name}
+        PRIVATE ${CMAKE_SOURCE_DIR}/test
+    )
+    target_compile_options(${package_name} PUBLIC -DSMOKE_TEST_SUPPORT)
+endif()
+
 
 # for tests
 add_library(data-relay-grpc-impl INTERFACE)

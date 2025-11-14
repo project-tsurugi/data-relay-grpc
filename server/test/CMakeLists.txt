@@ -5,12 +5,11 @@ find_program(PROTOBUF_PROTOC protoc)
 find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
 
 # For protos used in test only
-file(GLOB_RECURSE PROTO_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.proto")
-foreach(FILE ${PROTO_FILES})
-  if(${FILE} MATCHES "data-relay-grpc/*")
-    list(APPEND TEST_PROTO_FILES ${FILE})
-  endif()
-endforeach()
+file(GLOB TEST_PROTO_FILES
+        ${CMAKE_SOURCE_DIR}/test/data-relay-grpc/grpc/proto/*.proto
+        ${CMAKE_SOURCE_DIR}/test/tateyama/proto/*.proto
+        ${CMAKE_SOURCE_DIR}/test/tateyama/proto/*/*.proto
+)
 add_custom_target(test_protos DEPENDS ${TEST_PROTO_FILES})
 
 #
@@ -80,4 +79,6 @@ foreach(file ${SRCS})
     add_test_executable(${file})
 endforeach()
 
-add_subdirectory(client)
+if(SMOKE_TEST_SUPPORT)
+    add_subdirectory(client)
+endif()

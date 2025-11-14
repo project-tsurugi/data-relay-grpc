@@ -7,78 +7,51 @@
 #include <stdexcept>
 #include <gflags/gflags.h>
 
-#include "tateyama/transport/transport.h"
-#include "tateyama/proto/debug/request.pb.h"
-#include "tateyama/proto/debug/response.pb.h"
+#include "blob_relay_smoke_test.grpc.pb.h"
 
 DECLARE_bool(dispose);
 
-namespace tateyama {
+namespace data_relay_grpc::blob_relay {
 
 class session {
 public:
-    session() {
-        while (true) {
-            try {
-                transport_ = std::make_unique<tateyama::bootstrap::wire::transport>(tateyama::bootstrap::wire::transport::service_id_debug);
-                return;
-            } catch (std::runtime_error &ex) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                continue;
-            } catch (std::exception &ex) {
-                throw std::runtime_error(std::string("originally: ") + ex.what());
-            }
-        }
+    session(const std::string& server_address) : server_address_(server_address) {
     }
     ~session() {
         dispose();
-        transport_.reset();
     }
-    std::size_t session_id() noexcept {
-        try {
-            ::tateyama::proto::debug::request::Request request{};
-            (void) request.mutable_blob_relay_create_session();
-            auto response_opt = transport_->send<::tateyama::proto::debug::response::BlobRelayCreateSession>(request);
+    std::size_t session_id() {
+        auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+        smoke_test::proto::BlobRelaySmokeTestSupport::Stub stub(channel);
+        ::grpc::ClientContext context;
 
-            if (response_opt) {
-                const auto& response = response_opt.value();
-                switch(response.result_case()) {
-                case ::tateyama::proto::debug::response::BlobRelayCreateSession::ResultCase::kSessionId:
-                    session_id_ = response.session_id();
-                    return session_id_;
-                default:
-                    throw std::runtime_error("server error");
-                }
-            }
-        } catch (std::runtime_error &ex) {
-            std::cerr << ex.what() << std::endl;
+        smoke_test::proto::CreateSessionRequest request{};
+        smoke_test::proto::CreateSessionResponse response{};
+        ::grpc::Status status = stub.CreateSession(&context, request, &response);
+        if (status.error_code() !=  ::grpc::StatusCode::OK) {
+            throw std::runtime_error(status.error_message());
         }
-        return -1;
-    }
-    void dispose() const noexcept {
-        if (FLAGS_dispose) {
-            try {
-                ::tateyama::proto::debug::request::Request request{};
-                (request.mutable_blob_relay_dispose_session())->set_session_id(session_id_);
-                auto response_opt = transport_->send<::tateyama::proto::debug::response::BlobRelayDisposeSession>(request);
 
-                if (response_opt) {
-                    const auto& response = response_opt.value();
-                    switch(response.result_case()) {
-                    case ::tateyama::proto::debug::response::BlobRelayDisposeSession::ResultCase::kSuccess:
-                        return;
-                    default:
-                        throw std::runtime_error("server error");
-                    }
-                }
-            } catch (std::runtime_error &ex) {
-                std::cerr << ex.what() << std::endl;
+        return response.session_id();
+    }
+    void dispose() const {
+        if (FLAGS_dispose) {
+            auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+            smoke_test::proto::BlobRelaySmokeTestSupport::Stub stub(channel);
+            ::grpc::ClientContext context;
+
+            smoke_test::proto::DisposeSessionRequest request{};
+            request.set_session_id(session_id_);
+            smoke_test::proto::DisposeSessionResponse response{};
+            ::grpc::Status status = stub.DisposeSession(&context, request, &response);
+            if (status.error_code() !=  ::grpc::StatusCode::OK) {
+                throw std::runtime_error(status.error_message ());
             }
         }
     }
 
 private:
-    std::unique_ptr<tateyama::bootstrap::wire::transport> transport_{};
+    std::string server_address_;
     std::uint64_t session_id_{};
 };
 

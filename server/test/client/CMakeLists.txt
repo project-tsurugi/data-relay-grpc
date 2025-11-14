@@ -23,42 +23,27 @@ foreach(SRC_FILE ${CLIENT_PROTO_OUT} ${CLIENT_GRPC_OUT})
   endif()
 endforeach()
 
-
-# For protos used by client only
-file(GLOB_RECURSE PROTO_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.proto")
-foreach(FILE ${PROTO_FILES})
-  if(${FILE} MATCHES "tateyama*")
-    list(APPEND TATEYAMA_PROTO_FILES ${FILE})
-  endif()
-endforeach()
-add_custom_target(tateyama_protos DEPENDS ${TATEYAMA_PROTO_FILES})
-#
-# Compile protobuf files in tateyama_protos target to cpp
-#
-# Generate protobuf files
-protobuf_generate(TARGET tateyama_protos LANGUAGE cpp OUT_VAR TATEYAMA_PROTO_OUT PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/test/client PROTOS ${TATEYAMA_PROTO_FILES})
-
-set(TATEYAMA_PROTO_SRCS)
-foreach(FILE ${TATEYAMA_PROTO_OUT})
-  if(${FILE} MATCHES ".*\.cc")
-    list(APPEND TATEYAMA_PROTO_SRCS ${FILE})
-  endif()
-endforeach()
+set(SMOKETEST_PROTO_DIR ${CMAKE_SOURCE_DIR}/test/data-relay-grpc/blob_relay/smoke_test/proto)
+file(GLOB SMOKETEST_PROTO ${SMOKETEST_PROTO_DIR}/*.proto)
+add_custom_target(smoke_test_protos DEPENDS ${PROTO_FILES})
+protobuf_generate(TARGET smoke_test_protos LANGUAGE cpp OUT_VAR SMOKE_TEST_OUT PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/test PROTOS ${SMOKETEST_PROTO} APPEND_PATH ${SMOKETEST_PROTO_DIR})
+protobuf_generate(TARGET smoke_test_protos LANGUAGE grpc OUT_VAR SMOKE_TEST_GRPC_OUT PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/test PROTOS ${SMOKETEST_PROTO} GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc PLUGIN "protoc-gen-grpc=${GRPC_CPP_PLUGIN}"  APPEND_PATH ${SMOKETEST_PROTO_DIR})
 
 file(GLOB CLIENT_SOURCES
         "*.cpp"
-        "tateyama/utils/*.cpp"
 )
 
 add_executable(test_client
         ${CLIENT_SOURCES}
         ${CLIENT_PROTO_SRCS}
-        ${TATEYAMA_PROTO_SRCS}
+        ${SMOKE_TEST_OUT}
+        ${SMOKE_TEST_GRPC_OUT}
 )
 
 add_dependencies(test_client
         client_protos
-        tateyama_protos
+        build_protos
+        smoke_test_protos
         )
 
 set_target_properties(test_client
