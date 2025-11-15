@@ -79,19 +79,11 @@ public:
     ::grpc::Status CreateBlobForDownLoad([[maybe_unused]] ::grpc::ServerContext* context,
                                          const proto::CreateBlobForDownLoadRequest* request,
                                          proto::CreateBlobForDownLoadResponse* response) {
-        auto transaction_id = request->transaction_id();
+        auto session_id = request->session_id();
         auto requested_size = static_cast<std::streamsize>(request->size());
         try {
-            std::uint64_t bid = ++bid_for_download_;
-            auto path = session_manager_.get_path(bid);
-            auto* blob_reference = response->mutable_blob_reference();
-            blob_reference->set_object_id(bid);
-            blob_reference->set_tag(session_manager_.get_tag(bid, transaction_id));
-            auto parent = path.parent_path();
-            if (!std::filesystem::exists(parent)) {
-                std::filesystem::create_directories(parent);
-            }
-
+            std::filesystem::path path("/tmp");
+            path /= std::filesystem::path(std::to_string(getpid()) + "-" + std::to_string(++file_id_));
             std::ofstream blob_file(path);
             if (!blob_file) {
                 return ::grpc::Status(::grpc::StatusCode::INTERNAL, "can not create a blob file for download test");
@@ -100,6 +92,13 @@ public:
                 blob_file.write(ref_.data(), std::min(requested_size - blob_file.tellp(), static_cast<std::streamsize>(ref_.size())));
             }
             blob_file.close();
+
+            auto& session = session_manager_.get_session(session_id);
+            auto bid = session.add(path);
+
+            auto* blob_reference = response->mutable_blob_reference();
+            blob_reference->set_object_id(bid);
+            blob_reference->set_tag(session.compute_tag(bid));
             return ::grpc::Status(::grpc::StatusCode::OK, "");
         } catch (std::runtime_error &ex) {
             return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, ex.what());
@@ -109,7 +108,7 @@ public:
 private:
     blob_session_manager& session_manager_;
     std::string ref_{"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n"};
-    std::atomic_uint64_t bid_for_download_{};
+    std::atomic_uint64_t file_id_{};
 };
 
 } // namespace data_relay_grpc::blob_relay::smoke_test

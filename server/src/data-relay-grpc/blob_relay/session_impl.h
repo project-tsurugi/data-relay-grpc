@@ -97,13 +97,10 @@ public:
       * @param blob_id the BLOB ID to compute the tag for.
       * @return the computed tag value.
       */
-    [[nodiscard]] blob_session::blob_tag_type compute_tag(blob_session::blob_id_type blob_id) const {
-        (void) blob_id;
-        return 0;
-    }
+    [[nodiscard]] blob_session::blob_tag_type compute_tag(blob_session::blob_id_type blob_id) const;
 
 // internal use
-    std::pair<blob_id_type, std::filesystem::path> create_blob_file();
+    std::pair<blob_id_type, std::filesystem::path> create_blob_file(const std::string prefix = "upload");
 
     std::optional<transaction_id_type> get_transaction_id() {
         return transaction_id_opt_;

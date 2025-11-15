@@ -16,14 +16,14 @@ namespace data_relay_grpc::blob_relay {
 
 class session {
 public:
-    session(const std::string& server_address, const std::optional<uint64_t> transaction_id_opt) : server_address_(server_address), transaction_id_opt_(transaction_id_opt) {
+    session(const std::string& server_address, const std::optional<uint64_t> transaction_id_opt) : server_address_(server_address) {
         auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
         smoke_test::proto::BlobRelaySmokeTestSupport::Stub stub(channel);
         ::grpc::ClientContext context;
 
         smoke_test::proto::CreateSessionRequest request{};
-        if (transaction_id_opt_) {
-            request.set_transaction_id(transaction_id_opt_.value());
+        if (transaction_id_opt) {
+            request.set_transaction_id(transaction_id_opt.value());
         }
         smoke_test::proto::CreateSessionResponse response{};
         ::grpc::Status status = stub.CreateSession(&context, request, &response);
@@ -77,9 +77,6 @@ public:
 
         smoke_test::proto::CreateBlobForDownLoadRequest request{};
         request.set_session_id(session_id_);
-        if (transaction_id_opt_) {
-            request.set_transaction_id(transaction_id_opt_.value());
-        }
         request.set_size(size);
         smoke_test::proto::CreateBlobForDownLoadResponse response{};
         ::grpc::Status status = stub.CreateBlobForDownLoad(&context, request, &response);
@@ -93,7 +90,6 @@ public:
 private:
     std::string server_address_;
     std::uint64_t session_id_{};
-    std::optional<std::uint64_t> transaction_id_opt_{};
 };
 
 }  // namespace

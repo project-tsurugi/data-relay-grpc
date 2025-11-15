@@ -41,7 +41,7 @@ public:
             throw std::runtime_error(directory_.string() + " is not writable");
         }
 
-        // remove existing
+        // remove existing files in the initialization
         for (const fs::directory_entry& itr : fs::directory_iterator(directory)) {
             std::error_code ec;
             fs::remove(itr.path(), ec);
@@ -58,20 +58,21 @@ public:
     std::atomic<std::size_t> current_size_{};
 
     friend class blob_session_impl;
-    std::filesystem::path add_blob_file(const std::filesystem::path& path) {
-        return directory_ / path;
-    }
-    std::filesystem::path create_blob_file(std::uint64_t new_blob_id) {
+    std::filesystem::path create_blob_file(std::uint64_t new_blob_id, const std::string& prefix) {
         std::filesystem::path file_path = directory_;
-        return directory_ / std::filesystem::path(std::string("upload_") + "_" + std::to_string(new_blob_id));
+        return directory_ / std::filesystem::path(prefix + "_" + std::to_string(new_blob_id));
     }
     bool reserve(std::size_t size) {
         if (quota_ != 0) {
-            if (auto prev = current_size_.fetch_add(size); (prev + size) <= quota_) {
-                return true;
+            std::size_t current = current_size_.load();
+            while (true) {
+                if (current + size > quota_) {
+                    return false;
+                }
+                if (current_size_.compare_exchange_strong(current, current + size)) {
+                    return true;
+                }
             }
-            current_size_.fetch_sub(size);
-            return false;
         }
         return true;
     }

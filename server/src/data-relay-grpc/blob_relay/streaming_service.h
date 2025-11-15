@@ -34,6 +34,8 @@ public:
 private:
     blob_session_manager& session_manager_;
     std::size_t chunk_size_;
+    constexpr static std::uint64_t SESSION_STORAGE_ID = 0;
+    constexpr static std::uint64_t LIMESTONE_BLOB_STORE = 1;
 };
 
 } // namespace data_relay_grpc::blob_relay

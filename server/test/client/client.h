@@ -8,6 +8,7 @@
 #include <sstream>
 #include <filesystem>
 #include <fstream>
+#include <thread>
 
 #include <gflags/gflags.h>
 
@@ -72,33 +73,38 @@ public:
         proto::BlobRelayStreaming::Stub stub(channel);
         ::grpc::ClientContext context;
 
-        std::unique_ptr<::grpc::ClientWriter<proto::PutStreamingRequest> > writer(stub.Put(&context, &res_));
+        try {
+            std::unique_ptr<::grpc::ClientWriter<proto::PutStreamingRequest> > writer(stub.Put(&context, &res_));
 
-        // send metadata
-        proto::PutStreamingRequest req_metadata;
-        auto* metadata = req_metadata.mutable_metadata();
-        metadata->set_session_id(session_id_);
-        if (!writer->Write(req_metadata)) {
-            throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
-        }
-
-        // send blob data begin
-        proto::PutStreamingRequest req_chunk;
-        std::size_t transfered_size{};
-        while (transfered_size < FLAGS_put_size) {
-            std::size_t size = std::min(reference_.length(), FLAGS_put_size - transfered_size);
-            req_chunk.set_chunk(reference_.chunk().data(), size);
-            transfered_size += size;
-            if (!writer->Write(req_chunk)) {
+            // send metadata
+            proto::PutStreamingRequest req_metadata;
+            auto* metadata = req_metadata.mutable_metadata();
+            metadata->set_session_id(session_id_);
+            if (!writer->Write(req_metadata)) {
                 throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
             }
+
+            // send blob data begin
+            proto::PutStreamingRequest req_chunk;
+            std::size_t transfered_size{};
+            while (transfered_size < FLAGS_put_size) {
+                std::size_t size = std::min(reference_.length(), FLAGS_put_size - transfered_size);
+                req_chunk.set_chunk(reference_.chunk().data(), size);
+                transfered_size += size;
+                if (!writer->Write(req_chunk)) {
+                    throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
+                }
+            }
+            writer->WritesDone();
+            ::grpc::Status status = writer->Finish();
+            if (status.error_code() != ::grpc::StatusCode::OK) {
+                throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__) + ":" + status.error_message ());
+            }
+            return res_.blob().object_id();
+        } catch (std::runtime_error &ex) {
+            std::cerr << ex.what() << std::endl;
+            throw ex;
         }
-        writer->WritesDone();
-        ::grpc::Status status = writer->Finish();
-        if (status.error_code() != ::grpc::StatusCode::OK) {
-            throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
-        }
-        return res_.blob().object_id();
     }
 
     void get(std::uint64_t blob_id, std::uint64_t tag, std::filesystem::path path) {
@@ -110,23 +116,27 @@ public:
         auto* blob = req.mutable_blob();
         blob->set_object_id(blob_id);
         blob->set_tag(tag);
-        std::unique_ptr<::grpc::ClientReader<proto::GetStreamingResponse> > reader(stub.Get(&context, req));
+        try {
+            std::unique_ptr<::grpc::ClientReader<proto::GetStreamingResponse> > reader(stub.Get(&context, req));
 
-        proto::GetStreamingResponse resp;
-        std::ofstream blob_file(path);
-        if (!blob_file) {
-            throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
-        }
-        while (reader->Read(&resp)) {
-            auto& chunk = resp.chunk();
-            blob_file.write(chunk.data(), chunk.length());
-        }
-        ::grpc::Status status = reader->Finish();
-        if (status.error_code() != ::grpc::StatusCode::OK) {
-            throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
+            proto::GetStreamingResponse resp;
+            std::ofstream blob_file(path);
+            if (!blob_file) {
+                throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
+            }
+            while (reader->Read(&resp)) {
+                auto& chunk = resp.chunk();
+                blob_file.write(chunk.data(), chunk.length());
+            }
+            ::grpc::Status status = reader->Finish();
+            if (status.error_code() != ::grpc::StatusCode::OK) {
+                throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__) + ":" + status.error_message ());
+            }
+        } catch (std::runtime_error &ex) {
+            std::cerr << ex.what() << std::endl;
         }
     }
-    
+
     bool compare(std::filesystem::path const path) {
         std::ifstream blob_file(path);
         if (!blob_file) {

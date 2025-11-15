@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <atomic>
 #include <exception>
 
 #include "test_root.h"
@@ -18,9 +19,9 @@ protected:
     const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
     const std::string session_store_name{"session_store"};
     const std::uint64_t transaction_id_for_test = 12345;
-    const std::uint64_t blob_id_for_test = 6789;
     const std::uint64_t tag_for_test = 2468;
     const std::uint64_t api_version = 0;
+    std::uint64_t blob_id_for_test{};
 
     std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_error_test")};
     blob_session* session_{};
@@ -51,12 +52,16 @@ protected:
     }
 
     void set_blob_data() {
-        std::ofstream strm;
-        strm.open(helper_->path("blob_data"));
+        std::filesystem::path path = helper_->path(std::string("blob-") + std::to_string(++blob_id_));
+        std::ofstream strm(path);
+        if (!strm) {
+            FAIL();
+        }
         for (int i = 0; i < 10; i++ ) {
             strm << test_partial_blob;
         }
         strm.close();
+        blob_id_for_test = session_->add(path);
     }
 
     blob_session_manager& get_session_manager() {
@@ -79,7 +84,7 @@ private:
     std::unique_ptr<services> services_{};
     std::uint64_t session_id_{};
     std::uint64_t transaction_id_{};
-    std::uint64_t blob_id_{};
+    std::atomic_uint64_t blob_id_{};
 };
 
 TEST_F(stream_error_test, get_ok) {
@@ -139,6 +144,7 @@ TEST_F(stream_error_test, get_no_session) {
     ::grpc::ClientContext context;
     GetStreamingRequest req;
     req.set_api_version(api_version);
+    req.set_session_id(session_->session_id() + 1);  // set sessoin_id that does not exist
     auto* blob = req.mutable_blob();
     blob->set_object_id(blob_id_for_test);
     blob->set_tag(tag_for_test);
