@@ -24,7 +24,7 @@ blob_session::blob_id_type blob_session_impl::add(blob_session::blob_path_type p
     blob_id_type new_blob_id = manager_.get_new_blob_id();
     if (std::filesystem::exists(path)) {
         // the blob file is not subject to quota management
-        blobs_.emplace(new_blob_id, std::make_pair<blob_path_type, std::size_t>(std::move(path), 0));
+        blobs_.emplace(new_blob_id, std::make_pair<blob_path_type, std::size_t>(std::filesystem::canonical(path), 0));
         return new_blob_id;
     }
     throw std::runtime_error(path.string() + " does not exists");

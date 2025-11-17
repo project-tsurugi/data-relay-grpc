@@ -10,7 +10,7 @@
 
 #include "blob_relay_smoke_test.grpc.pb.h"
 
-DECLARE_bool(dispose);
+DECLARE_uint32(sleep);
 
 namespace data_relay_grpc::blob_relay {
 
@@ -35,24 +35,25 @@ public:
     session(const std::string& server_address) : session(server_address, std::nullopt) {
     }
     ~session() {
+        if (FLAGS_sleep > 0) {
+            std::this_thread::sleep_for(std::chrono::seconds(FLAGS_sleep));
+        }
         dispose();
     }
     std::size_t session_id() {
         return session_id_;
     }
     void dispose() const {
-        if (FLAGS_dispose) {
-            auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
-            smoke_test::proto::BlobRelaySmokeTestSupport::Stub stub(channel);
-            ::grpc::ClientContext context;
+        auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+        smoke_test::proto::BlobRelaySmokeTestSupport::Stub stub(channel);
+        ::grpc::ClientContext context;
 
-            smoke_test::proto::DisposeSessionRequest request{};
-            request.set_session_id(session_id_);
-            smoke_test::proto::DisposeSessionResponse response{};
-            ::grpc::Status status = stub.DisposeSession(&context, request, &response);
-            if (status.error_code() !=  ::grpc::StatusCode::OK) {
-                throw std::runtime_error(status.error_message ());
-            }
+        smoke_test::proto::DisposeSessionRequest request{};
+        request.set_session_id(session_id_);
+        smoke_test::proto::DisposeSessionResponse response{};
+        ::grpc::Status status = stub.DisposeSession(&context, request, &response);
+        if (status.error_code() !=  ::grpc::StatusCode::OK) {
+            throw std::runtime_error(status.error_message ());
         }
     }
     std::filesystem::path file_path(std::uint64_t blob_id) {

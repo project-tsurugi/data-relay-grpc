@@ -8,13 +8,14 @@
 #include <sstream>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <thread>
 
 #include <gflags/gflags.h>
 
 #include "blob_relay_streaming.grpc.pb.h"
 
-DECLARE_uint64(put_size);
+DECLARE_uint32(fault);
 DECLARE_bool(vervose);
 
 using grpc::Channel;
@@ -68,43 +69,41 @@ public:
     Client(const std::string& server_address, std::size_t session_id) : server_address_(server_address), session_id_(session_id) {
     }
 
-    std::uint64_t put() {
+    std::uint64_t put(std::size_t size) {
         auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
         proto::BlobRelayStreaming::Stub stub(channel);
         ::grpc::ClientContext context;
 
-        try {
-            std::unique_ptr<::grpc::ClientWriter<proto::PutStreamingRequest> > writer(stub.Put(&context, &res_));
+        std::unique_ptr<::grpc::ClientWriter<proto::PutStreamingRequest> > writer(stub.Put(&context, &res_));
 
-            // send metadata
-            proto::PutStreamingRequest req_metadata;
-            auto* metadata = req_metadata.mutable_metadata();
-            metadata->set_session_id(session_id_);
-            if (!writer->Write(req_metadata)) {
+        // send metadata
+        proto::PutStreamingRequest req_metadata;
+        auto* metadata = req_metadata.mutable_metadata();
+        metadata->set_session_id(session_id_ + ((FLAGS_fault == 1) ? 1: 0));  // fault 1
+        if (!writer->Write(req_metadata)) {
+            throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
+        }
+
+        if (FLAGS_fault == 2) {
+            throw std::runtime_error("A runtime_error intentionally raised for testing purposes");  // fault 2
+        }
+        // send blob data begin
+        proto::PutStreamingRequest req_chunk;
+        std::size_t transfered_size{};
+        do {
+            std::size_t chunk_size = std::min(reference_.length(), size - transfered_size);
+            req_chunk.set_chunk(reference_.chunk().data(), chunk_size);
+            transfered_size += chunk_size;
+            if (!writer->Write(req_chunk)) {
                 throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
             }
-
-            // send blob data begin
-            proto::PutStreamingRequest req_chunk;
-            std::size_t transfered_size{};
-            while (transfered_size < FLAGS_put_size) {
-                std::size_t size = std::min(reference_.length(), FLAGS_put_size - transfered_size);
-                req_chunk.set_chunk(reference_.chunk().data(), size);
-                transfered_size += size;
-                if (!writer->Write(req_chunk)) {
-                    throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
-                }
-            }
-            writer->WritesDone();
-            ::grpc::Status status = writer->Finish();
-            if (status.error_code() != ::grpc::StatusCode::OK) {
-                throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__) + ":" + status.error_message ());
-            }
-            return res_.blob().object_id();
-        } catch (std::runtime_error &ex) {
-            std::cerr << ex.what() << std::endl;
-            throw ex;
+        } while (transfered_size < size);
+        writer->WritesDone();
+        ::grpc::Status status = writer->Finish();
+        if (status.error_code() != ::grpc::StatusCode::OK) {
+            throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__) + ", message = `" + status.error_message () + "'");
         }
+        return res_.blob().object_id();
     }
 
     void get(std::uint64_t blob_id, std::uint64_t tag, std::filesystem::path path) {
@@ -112,28 +111,26 @@ public:
         proto::BlobRelayStreaming::Stub stub(channel);
         ::grpc::ClientContext context;
         proto::GetStreamingRequest req;
-        req.set_session_id(session_id_);
+        req.set_session_id(session_id_ + ((FLAGS_fault == 1) ? 1: 0));  // fault 1
         auto* blob = req.mutable_blob();
-        blob->set_object_id(blob_id);
-        blob->set_tag(tag);
-        try {
-            std::unique_ptr<::grpc::ClientReader<proto::GetStreamingResponse> > reader(stub.Get(&context, req));
+        blob->set_object_id(blob_id + ((FLAGS_fault == 5) ? 1: 0));  // fault 5
+        blob->set_tag(tag + ((FLAGS_fault == 3) ? 1: 0));  // fault 3
 
-            proto::GetStreamingResponse resp;
-            std::ofstream blob_file(path);
-            if (!blob_file) {
-                throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
-            }
-            while (reader->Read(&resp)) {
-                auto& chunk = resp.chunk();
-                blob_file.write(chunk.data(), chunk.length());
-            }
-            ::grpc::Status status = reader->Finish();
-            if (status.error_code() != ::grpc::StatusCode::OK) {
-                throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__) + ":" + status.error_message ());
-            }
-        } catch (std::runtime_error &ex) {
-            std::cerr << ex.what() << std::endl;
+        std::unique_ptr<::grpc::ClientReader<proto::GetStreamingResponse> > reader(stub.Get(&context, req));
+
+        proto::GetStreamingResponse resp;
+        std::ofstream blob_file(path);
+        if (!blob_file) {
+            throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
+        }
+        while (reader->Read(&resp)) {
+            auto& chunk = resp.chunk();
+            blob_file.write(chunk.data(), chunk.length());
+        }
+        blob_file.close();
+        ::grpc::Status status = reader->Finish();
+        if (status.error_code() != ::grpc::StatusCode::OK) {
+            throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__) + ", message = `" + status.error_message () + "'");
         }
     }
 
@@ -150,6 +147,13 @@ public:
         std::string buffer{};
         buffer.resize(buffer_size);
 
+        if (fileSize == 0) {
+            std::stringstream ss{};
+            ss << "file size of " << path.string() << " is " << std::filesystem::file_size(path) << " bytes";
+            std::cout << ss.str() << std::endl;
+            return true;
+        }
+
         while (blob_file.tellg() < fileSize) {
             auto size = std::min(static_cast<std::size_t>(fileSize - blob_file.tellg()), buffer_size);
             blob_file.read(reinterpret_cast<char*>(buffer.data()), size);
@@ -159,6 +163,11 @@ public:
             if (!reference_.compare(buffer, size)) {
                 return false;
             }
+        }
+        {
+            std::stringstream ss{};
+            ss << "file size of " << path.string() << " is " << std::filesystem::file_size(path) << " bytes, and that is the same as the reference data";
+            std::cout << ss.str() << std::endl;
         }
         return true;
     }
