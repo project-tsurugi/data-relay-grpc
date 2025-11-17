@@ -18,46 +18,73 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
     }
 
     try {
-        auto& session_impl = session_manager_.get_session_impl(request->session_id());
-        if (auto transaction_id_opt = session_impl.get_transaction_id(); transaction_id_opt) {
-            blob_session::transaction_id_type transaction_id = transaction_id_opt.value();
-            blob_session::blob_id_type blob_id = request->blob().object_id();
+        blob_session::session_id_type session_id{};
+        blob_session::transaction_id_type transaction_id{};
+        blob_session::blob_id_type blob_id = request->blob().object_id();
+        if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kSessionId) {
+            session_id = request->session_id();
+        } else if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kTransactionId) {
+            transaction_id = request->transaction_id();
+            session_id = session_manager_.get_session_id(transaction_id);
+        } else {
+            return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "content_id is neither session_id nor transaction_id");
+        }
 
-            blob_session::blob_tag_type tag = session_manager_.get_tag(blob_id, transaction_id);
-            if (tag != request->blob().tag()) {
-                return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "tag mismatch");
-            }
-
-            GetStreamingResponse response{};
-            auto path = session_manager_.get_path(blob_id);
-            if (std::filesystem::exists(path)) {
-                std::ifstream ifs(session_manager_.get_path(blob_id));
-                std::string s{};
-                s.resize(chunk_size_);
-                while (true) {
-                    ifs.read(s.data(), s.length());
-                    auto size = ifs.gcount();
-                    if (size == 0) {
-                        response.clear_chunk();
-                        writer->Write(response);
-                        return ::grpc::Status(::grpc::StatusCode::OK, "");
-                    }
-                    response.set_chunk(s.data(), size);
-                    writer->Write(response);
+        auto& session_impl = session_manager_.get_session_impl(session_id);
+        if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kTransactionId) {
+            if (auto transaction_id_opt = session_impl.get_transaction_id(); transaction_id_opt) {
+                if (transaction_id_opt.value() != transaction_id) {
+                    return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "transaction_id does not match with that of the session");
                 }
-                try {
-                    std::filesystem::remove(path);
-                } catch (std::exception &ex) {
-                    return ::grpc::Status(::grpc::StatusCode::INTERNAL, ex.what());
-                }
-                return ::grpc::Status(::grpc::StatusCode::OK, "");
             } else {
-                return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "there is no blob entry or no file corresponding to the blob id");
+                return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the session has no transaction");
             }
         }
-        return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the session has no transaction");
+        if (session_impl.compute_tag(blob_id) != request->blob().tag()) {
+            return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "tag mismatch");
+        }
+
+        blob_session::blob_path_type path{};
+        auto storage_id = request->blob().storage_id();
+        if (storage_id == SESSION_STORAGE_ID) {
+            if (auto path_opt = session_impl.find(blob_id); path_opt) {
+                path = path_opt.value();
+            } else {
+                return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "can not find the blob by the blob_id given");
+            }
+        } else if (storage_id == LIMESTONE_BLOB_STORE) {
+            path = session_manager_.get_path(blob_id);
+        } else {
+            return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "storage_id is neither session store nor limestone blob store");
+        }
+        
+        GetStreamingResponse response{};
+        if (std::filesystem::exists(path)) {
+            std::ifstream ifs(path);
+            std::string s{};
+            s.resize(chunk_size_);
+            while (true) {
+                ifs.read(s.data(), s.length());
+                auto size = ifs.gcount();
+                if (size == 0) {
+                    response.clear_chunk();
+                    writer->Write(response);
+                    return ::grpc::Status(::grpc::StatusCode::OK, "");
+                }
+                response.set_chunk(s.data(), size);
+                writer->Write(response);
+            }
+            if (storage_id == SESSION_STORAGE_ID) {
+                session_impl.delete_blob_file(blob_id);
+            }
+            return ::grpc::Status(::grpc::StatusCode::OK, "");
+        } else {
+            return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "there is no blob entry or no file corresponding to the blob id");
+        }
     } catch (std::out_of_range &ex) {
         return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, ex.what());
+    } catch (std::exception &ex) {
+        return ::grpc::Status(::grpc::StatusCode::INTERNAL, ex.what());
     }
 }
 

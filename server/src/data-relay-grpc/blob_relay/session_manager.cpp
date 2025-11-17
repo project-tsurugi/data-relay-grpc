@@ -60,6 +60,14 @@ blob_session_impl& blob_session_manager::get_session_impl(blob_session::session_
     throw std::out_of_range("can not find the session specified");
 }
 
+blob_session::session_id_type blob_session_manager::get_session_id(blob_session::transaction_id_type transaction_id) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    if (auto itr = blob_session_ids_.find(transaction_id); itr != blob_session_ids_.end()) {
+        return itr->second;
+    }
+    throw std::out_of_range("can not find the session specified by the transaction_id");
+}
+
 blob_session::blob_tag_type blob_session_manager::get_tag(blob_session::blob_id_type bid, blob_session::transaction_id_type tid) {
     return api_.get_tag()(bid, tid);
 }

@@ -47,6 +47,8 @@ public:
 
     blob_session_impl& get_session_impl(blob_session::session_id_type);
 
+    blob_session::session_id_type get_session_id(blob_session::transaction_id_type);
+
 private:
     services::api api_;
     blob_session_store session_store_;

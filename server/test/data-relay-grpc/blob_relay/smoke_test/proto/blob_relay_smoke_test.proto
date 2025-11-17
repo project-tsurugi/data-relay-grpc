@@ -87,11 +87,8 @@ message CreateBlobForDownLoadRequest {
     // session id of the target session.
     uint64 session_id = 1;
 
-    // transaction id of the target session.
-    uint64 transaction_id = 2;
-
     // file size.
-    uint64 size = 3;
+    uint64 size = 2;
 }
 message CreateBlobForDownLoadResponse {
     reserved 1 to 10;
