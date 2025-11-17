@@ -74,9 +74,6 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
                 response.set_chunk(s.data(), size);
                 writer->Write(response);
             }
-            if (storage_id == SESSION_STORAGE_ID) {
-                session_impl.delete_blob_file(blob_id);
-            }
             return ::grpc::Status(::grpc::StatusCode::OK, "");
         } else {
             return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "there is no blob entry or no file corresponding to the blob id");
