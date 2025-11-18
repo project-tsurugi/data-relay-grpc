@@ -30,6 +30,7 @@ option(ENABLE_UB_SANITIZER "enable undefined behavior sanitizer on debug build" 
 option(BUILD_TESTS "Build test programs" ON)
 option(BUILD_DOCUMENTS "build documents" ON)
 option(BUILD_STRICT "build with option strictly determine of success" ON)
+option(BUILD_SHARED_LIBS "build shared libraries instead of static" ON)
 option(USE_GRPC_CONFIG "Use CMake Config mode for gRPC instead of pkg-config" OFF)
 option(SMOKE_TEST_SUPPORT "Include smoke test support functionalities" OFF)
 
