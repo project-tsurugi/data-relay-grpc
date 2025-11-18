@@ -10,6 +10,7 @@
 #include <fstream>
 #include <sstream>
 #include <thread>
+#include <chrono>
 
 #include <gflags/gflags.h>
 
@@ -85,7 +86,8 @@ public:
         }
 
         if (FLAGS_fault == 2) {
-            throw std::runtime_error("A runtime_error intentionally raised for testing purposes");  // fault 2
+            std::cout << "intentionally sleep for 2 minutes" << std::endl;
+            std::this_thread::sleep_for(std::chrono::minutes(2));  // fault 2
         }
         // send blob data begin
         proto::PutStreamingRequest req_chunk;
