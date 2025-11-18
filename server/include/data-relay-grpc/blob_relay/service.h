@@ -32,9 +32,9 @@ class streaming_service;
 class local_service;
 
 /**
- * @brief blob relay services
+ * @brief blob relay service
  */
-class services {
+class blob_relay_service {
 public:
     class api {
     public:
@@ -55,10 +55,21 @@ public:
         std::function<std::filesystem::path(blob_session::blob_id_type)> get_path_;
     };
 
-    services(api const& f, service_configuration const& p);
+    blob_relay_service(api const& f, service_configuration const& p);
 
-    blob_session& create_session(std::optional<std::uint64_t>);
-    void add_blob_relay_services(::grpc::ServerBuilder&);
+    /**
+      * @brief Create a new session for BLOB operations.
+      * @param transaction_id The ID of the transaction that owns the session,
+      *    or empty if the session is not associated with any transaction
+      * @return the created session object
+      */
+    blob_session& create_session(std::optional<std::uint64_t> transaction_id);
+
+    /**
+      * @brief Add the blob relay service to gRPC server.
+      * @param builder The builder of the gRPC server
+      */
+    void add_blob_relay_service(::grpc::ServerBuilder& builder);
 
     // for tests only
     blob_session_manager& get_session_manager();

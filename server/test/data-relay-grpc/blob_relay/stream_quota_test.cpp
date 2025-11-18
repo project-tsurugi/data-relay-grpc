@@ -9,7 +9,7 @@
 #include "test_root.h"
 #include "data-relay-grpc/grpc/grpc_server_test_base.h"
 
-#include <data-relay-grpc/blob_relay/services.h>
+#include <data-relay-grpc/blob_relay/service.h>
 #include "data-relay-grpc/blob_relay/streaming_service.h"
 
 namespace data_relay_grpc::blob_relay {
@@ -31,7 +31,7 @@ protected:
         data_relay_grpc::grpc::grpc_server_test_base::SetUp();
         helper_->set_up();
         std::filesystem::create_directory(helper_->path(session_store_name));
-        services_ = std::make_unique<services>(
+        service_ = std::make_unique<blob_relay_service>(
             api_for_test,
             service_configuration{
                 helper_->path(session_store_name),  // session_store
@@ -42,9 +42,9 @@ protected:
             }
         );
         set_service_handler([this](::grpc::ServerBuilder& builder) {
-            services_->add_blob_relay_services(builder);
+            service_->add_blob_relay_service(builder);
         });
-        session_ = &services_->create_session(transaction_id_for_test);
+        session_ = &service_->create_session(transaction_id_for_test);
     }
 
     void TearDown() override {
@@ -91,7 +91,7 @@ protected:
     }
 
     blob_session_manager& get_session_manager() {
-        return  services_->get_session_manager();
+        return  service_->get_session_manager();
     }
 
     std::size_t session_store_current_usage() {
@@ -100,7 +100,7 @@ protected:
     }
 
 private:
-    services::api api_for_test{
+    blob_relay_service::api api_for_test{
         [this](std::uint64_t bid, std::uint64_t tid) {
             EXPECT_EQ(bid, blob_id_for_test);
             EXPECT_EQ(tid, transaction_id_for_test);
@@ -113,7 +113,7 @@ private:
         }
     };
 
-    std::unique_ptr<services> services_{};
+    std::unique_ptr<blob_relay_service> service_{};
     std::uint64_t session_id_{};
     std::uint64_t transaction_id_{};
     std::uint64_t blob_id_{};
