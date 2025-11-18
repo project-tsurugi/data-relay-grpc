@@ -42,3 +42,7 @@ The initial version number for each message is 1.
 
 - for server
   - see [server/README.md](server/README.md)
+
+## License
+
+[Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
