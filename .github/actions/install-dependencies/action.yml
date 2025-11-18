@@ -10,9 +10,6 @@ inputs:
   cmake_build_option:
     type: string
     default: ''
-  token:
-    type: string
-    default: ''
 
 runs:
   using: "composite"
@@ -25,7 +22,6 @@ runs:
         repository: project-tsurugi/limestone
         path: ${{ inputs.path }}/limestone
         ref: master
-        token: ${{ inputs.token }}
 
     - name: Install_Limestone
       run: |
