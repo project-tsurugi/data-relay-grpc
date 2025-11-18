@@ -40,9 +40,6 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
                 return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the session has no transaction");
             }
         }
-        if (session_impl.compute_tag(blob_id) != request->blob().tag()) {
-            return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "tag mismatch");
-        }
 
         blob_session::blob_path_type path{};
         auto storage_id = request->blob().storage_id();
@@ -50,14 +47,19 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
             if (auto path_opt = session_impl.find(blob_id); path_opt) {
                 path = path_opt.value();
             } else {
-                return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "can not find the blob by the blob_id given");
+                return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "can not find the blob data by the blob_id given");
             }
         } else if (storage_id == LIMESTONE_BLOB_STORE) {
             path = session_manager_.get_path(blob_id);
         } else {
             return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "storage_id is neither session store nor limestone blob store");
         }
-        
+
+        // should be done after confirming the blog's existence
+        if (session_impl.compute_tag(blob_id) != request->blob().tag()) {
+            return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the given tag does not match the desiring value");
+        }
+
         GetStreamingResponse response{};
         if (std::filesystem::exists(path)) {
             std::ifstream ifs(path);
