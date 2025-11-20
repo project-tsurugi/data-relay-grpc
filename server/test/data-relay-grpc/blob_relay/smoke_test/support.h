@@ -54,7 +54,7 @@ public:
                                   const proto::DisposeSessionRequest* request,
                                   [[maybe_unused]] proto::DisposeSessionResponse* response) {
         auto session_id = request->session_id();
-        session_manager_.dispose(session_id);
+        session_manager_.get_session(session_id).dispose();
         return ::grpc::Status(::grpc::StatusCode::OK, "");
     }
 
