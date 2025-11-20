@@ -63,7 +63,7 @@ public:
       *    or empty if the session is not associated with any transaction
       * @return the created session object
       */
-    blob_session& create_session(std::optional<std::uint64_t> transaction_id);
+    [[nodiscard]] blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt);
 
     /**
       * @brief Add the blob relay service to gRPC server.
