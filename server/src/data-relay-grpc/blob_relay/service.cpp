@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <data-relay-grpc/blob_relay/services.h>
+#include <data-relay-grpc/blob_relay/service.h>
 
 #include "session_manager.h"
 #include "streaming_service.h"
@@ -31,7 +31,7 @@ static std::unique_ptr<smoketest_support_service> unqp_smoketest_support_service
 }
 #endif
 
-services::services(api const& f, service_configuration const& c)
+blob_relay_service::blob_relay_service(api const& f, service_configuration const& c)
     : api_(f),
       configuration_(c),
       session_manager_(unique_ptr_session_manager(new blob_session_manager(api_, configuration_.session_store(), c.session_quota_size()), [](blob_session_manager* e){ delete e; })),
@@ -42,11 +42,11 @@ services::services(api const& f, service_configuration const& c)
 #endif
 }
 
-blob_session& services::create_session(std::optional<blob_session::transaction_id_type> transaction_id_opt) {
+blob_session& blob_relay_service::create_session(std::optional<blob_session::transaction_id_type> transaction_id_opt) {
     return session_manager_->create_session(transaction_id_opt);
 }
 
-void services::add_blob_relay_services(grpc::ServerBuilder& builder) {
+void blob_relay_service::add_blob_relay_service(grpc::ServerBuilder& builder) {
     builder.RegisterService(streaming_service_.get());
     if (configuration_.local_enabled()) {
         builder.RegisterService(local_service_.get());
@@ -56,7 +56,7 @@ void services::add_blob_relay_services(grpc::ServerBuilder& builder) {
 #endif
 }
 
-blob_session_manager& services::get_session_manager() {
+blob_session_manager& blob_relay_service::get_session_manager() {
     return *session_manager_;
 }
 

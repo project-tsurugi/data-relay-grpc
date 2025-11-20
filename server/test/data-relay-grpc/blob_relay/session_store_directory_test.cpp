@@ -7,7 +7,7 @@
 #include "test_root.h"
 #include "data-relay-grpc/grpc/grpc_server_test_base.h"
 
-#include <data-relay-grpc/blob_relay/services.h>
+#include <data-relay-grpc/blob_relay/service.h>
 #include "data-relay-grpc/blob_relay/streaming_service.h"
 
 namespace data_relay_grpc::blob_relay {
@@ -28,7 +28,7 @@ protected:
         data_relay_grpc::grpc::grpc_server_test_base::TearDown();
     }
 
-    services::api api_for_test{
+    blob_relay_service::api api_for_test{
         [this](std::uint64_t bid, std::uint64_t tid) {
             return tag_for_test;
         },
@@ -37,7 +37,7 @@ protected:
         }
     };
 
-    std::unique_ptr<services> services_{};
+    std::unique_ptr<blob_relay_service> service_{};
 };
 
 TEST_F(session_store_directory_test, basic) {
@@ -49,7 +49,7 @@ TEST_F(session_store_directory_test, basic) {
         32                // stream_chunk_size
     };
 
-    EXPECT_NO_THROW( { services_ = std::make_unique<services>(api_for_test, conf_for_test); } );
+    EXPECT_NO_THROW( { service_ = std::make_unique<blob_relay_service>(api_for_test, conf_for_test); } );
 }
 
 TEST_F(session_store_directory_test, symbolic_link) {
@@ -67,7 +67,7 @@ TEST_F(session_store_directory_test, symbolic_link) {
         32      // stream_chunk_size
     };
 
-    EXPECT_NO_THROW( { services_ = std::make_unique<services>(api_for_test, conf_for_test); } );
+    EXPECT_NO_THROW( { service_ = std::make_unique<blob_relay_service>(api_for_test, conf_for_test); } );
 }
 
 TEST_F(session_store_directory_test, not_exist) {
@@ -79,7 +79,7 @@ TEST_F(session_store_directory_test, not_exist) {
         32                    // stream_chunk_size
     };
 
-    EXPECT_THROW( { services_ = std::make_unique<services>(api_for_test, conf_for_test); }, std::runtime_error );
+    EXPECT_THROW( { service_ = std::make_unique<blob_relay_service>(api_for_test, conf_for_test); }, std::runtime_error );
 }
 
 TEST_F(session_store_directory_test, not_directory) {
@@ -96,7 +96,7 @@ TEST_F(session_store_directory_test, not_directory) {
         32      // stream_chunk_size
     };
 
-    EXPECT_THROW( { services_ = std::make_unique<services>(api_for_test, conf_for_test); }, std::runtime_error );
+    EXPECT_THROW( { service_ = std::make_unique<blob_relay_service>(api_for_test, conf_for_test); }, std::runtime_error );
 }
 
 } // namespace

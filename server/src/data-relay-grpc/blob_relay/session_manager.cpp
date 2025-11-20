@@ -18,7 +18,7 @@
 
 namespace data_relay_grpc::blob_relay {
 
-blob_session_manager::blob_session_manager(const services::api& api, const std::string& directory, std::size_t quota)
+blob_session_manager::blob_session_manager(const blob_relay_service::api& api, const std::string& directory, std::size_t quota)
     : api_(api), session_store_(directory, quota) {
 }
 
