@@ -78,7 +78,7 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
             }
             return ::grpc::Status(::grpc::StatusCode::OK, "");
         } else {
-            return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "there is no blob entry or no file corresponding to the blob id");
+            return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "an error occurred while reading the blob file");
         }
     } catch (std::out_of_range &ex) {
         return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, ex.what());
