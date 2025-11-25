@@ -1,4 +1,4 @@
-name: Tateyama-Install-Dependencies
+name: Data-Relay-gRPC-Install-Dependencies
 
 inputs:
   checkout:
