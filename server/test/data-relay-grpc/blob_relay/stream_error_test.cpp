@@ -37,7 +37,8 @@ protected:
                 0,                                  // session_quota_size
                 false,                              // local_enabled
                 false,                              // local_upload_copy_file
-                32                                  // stream_chunk_size
+                32,                                 // stream_chunk_size
+                false                               // dev_accept_mock_tag
             }
         );
         set_service_handler([this](::grpc::ServerBuilder& builder) {
@@ -90,7 +91,7 @@ private:
 TEST_F(stream_error_test, get_ok) {
     start_server();
     set_blob_data();
-    
+
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
     BlobRelayStreaming::Stub stub(channel);
     ::grpc::ClientContext context;
@@ -114,7 +115,7 @@ TEST_F(stream_error_test, get_ok) {
 TEST_F(stream_error_test, get_api_version) {
     start_server();
     set_blob_data();
-    
+
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
     BlobRelayStreaming::Stub stub(channel);
     ::grpc::ClientContext context;
@@ -135,10 +136,34 @@ TEST_F(stream_error_test, get_api_version) {
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::UNAVAILABLE);
 }
 
+TEST_F(stream_error_test, get_invalid_tag) {
+    start_server();
+    set_blob_data();
+
+    auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+    BlobRelayStreaming::Stub stub(channel);
+    ::grpc::ClientContext context;
+    GetStreamingRequest req;
+    req.set_api_version(api_version);
+    req.set_session_id(session_->session_id());
+    auto* blob = req.mutable_blob();
+    blob->set_object_id(blob_id_for_test);
+    blob->set_tag(tag_for_test + 1);
+    std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
+
+    GetStreamingResponse resp;
+    std::string blob_data{};
+    while (reader->Read(&resp)) {
+        blob_data += resp.chunk();
+    }
+    ::grpc::Status status = reader->Finish();
+    EXPECT_EQ(status.error_code(), ::grpc::StatusCode::PERMISSION_DENIED);
+}
+
 TEST_F(stream_error_test, get_no_session) {
     start_server();
     set_blob_data();
-    
+
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
     BlobRelayStreaming::Stub stub(channel);
     ::grpc::ClientContext context;
@@ -162,7 +187,7 @@ TEST_F(stream_error_test, get_no_session) {
 TEST_F(stream_error_test, get_no_blob_file) {
     start_server();
     set_blob_data();
-    
+
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
     BlobRelayStreaming::Stub stub(channel);
     ::grpc::ClientContext context;

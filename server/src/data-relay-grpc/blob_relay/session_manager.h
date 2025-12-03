@@ -33,7 +33,7 @@ namespace data_relay_grpc::blob_relay {
  */
 class blob_session_manager {
 public:
-    blob_session_manager(const blob_relay_service::api&, const std::string&, std::size_t);
+    blob_session_manager(const blob_relay_service::api&, const std::string&, std::size_t, bool);
 
     blob_session& create_session(std::optional<blob_session::transaction_id_type>);
 
@@ -49,9 +49,15 @@ public:
 
     blob_session::session_id_type get_session_id(blob_session::transaction_id_type);
 
+    bool dev_accept_mock_tag() {
+        return dev_accept_mock_tag_;
+    }
+    constexpr static blob_session::blob_tag_type MOCK_TAG = 0xffffffffffffffffLL;
+
 private:
     blob_relay_service::api api_;
     blob_session_store session_store_;
+    bool dev_accept_mock_tag_;
     std::atomic<blob_session::session_id_type> session_id_{};
     std::atomic<blob_session::blob_id_type> blob_id_{};
 

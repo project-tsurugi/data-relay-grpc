@@ -36,7 +36,8 @@ protected:
                 0,                                  // session_quota_size
                 false,                              // local_enabled
                 false,                              // local_upload_copy_file
-                32                                  // stream_chunk_size
+                32,                                 // stream_chunk_size
+                false                               // dev_accept_mock_tag
             }
         );
         set_service_handler([this](::grpc::ServerBuilder& builder) {

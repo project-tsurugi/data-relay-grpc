@@ -34,7 +34,7 @@ static std::unique_ptr<smoketest_support_service> unqp_smoketest_support_service
 blob_relay_service::blob_relay_service(api const& f, service_configuration const& c)
     : api_(f),
       configuration_(c),
-      session_manager_(unique_ptr_session_manager(new blob_session_manager(api_, configuration_.session_store(), c.session_quota_size()), [](blob_session_manager* e){ delete e; })),
+      session_manager_(unique_ptr_session_manager(new blob_session_manager(api_, configuration_.session_store(), c.session_quota_size(), c.dev_accept_mock_tag()), [](blob_session_manager* e){ delete e; })),
       streaming_service_(unique_ptr_streaming_service(new streaming_service(*session_manager_, configuration_.stream_chunk_size()), [](streaming_service* e){ delete  e; })),
       local_service_(unique_ptr_local_service(new local_service(*session_manager_), [](local_service* e){ delete  e; })) {
 #ifdef SMOKE_TEST_SUPPORT

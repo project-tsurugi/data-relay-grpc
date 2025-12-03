@@ -57,7 +57,9 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
 
         // should be done after confirming the blog's existence
         if (session_impl.compute_tag(blob_id) != request->blob().tag()) {
-            return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the given tag does not match the desiring value");
+            if (!session_manager_.dev_accept_mock_tag() || request->blob().tag() != blob_session_manager::MOCK_TAG) {
+                return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the given tag does not match the desiring value");
+            }
         }
 
         GetStreamingResponse response{};

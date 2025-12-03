@@ -46,7 +46,8 @@ TEST_F(session_store_directory_test, basic) {
         0,                // session_quota_size
         false,            // local_enabled
         false,            // local_upload_copy_file
-        32                // stream_chunk_size
+        32,               // stream_chunk_size
+        false             // dev_accept_mock_tag
     };
 
     EXPECT_NO_THROW( { service_ = std::make_unique<blob_relay_service>(api_for_test, conf_for_test); } );
@@ -64,7 +65,8 @@ TEST_F(session_store_directory_test, symbolic_link) {
         0,      // session_quota_size
         false,  // local_enabled
         false,  // local_upload_copy_file
-        32      // stream_chunk_size
+        32,     // stream_chunk_size
+        false   // dev_accept_mock_tag
     };
 
     EXPECT_NO_THROW( { service_ = std::make_unique<blob_relay_service>(api_for_test, conf_for_test); } );
@@ -76,7 +78,8 @@ TEST_F(session_store_directory_test, not_exist) {
         0,                    // session_quota_size
         false,                // local_enabled
         false,                // local_upload_copy_file
-        32                    // stream_chunk_size
+        32,                   // stream_chunk_size
+        false                 // dev_accept_mock_tag
     };
 
     EXPECT_THROW( { service_ = std::make_unique<blob_relay_service>(api_for_test, conf_for_test); }, std::runtime_error );
@@ -93,7 +96,8 @@ TEST_F(session_store_directory_test, not_directory) {
         0,      // session_quota_size
         false,  // local_enabled
         false,  // local_upload_copy_file
-        32      // stream_chunk_size
+        32,     // stream_chunk_size
+        false   // dev_accept_mock_tag
     };
 
     EXPECT_THROW( { service_ = std::make_unique<blob_relay_service>(api_for_test, conf_for_test); }, std::runtime_error );

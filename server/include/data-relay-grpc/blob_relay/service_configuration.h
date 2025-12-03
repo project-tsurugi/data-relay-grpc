@@ -31,12 +31,15 @@ public:
         std::size_t session_quota_size,
         bool local_enabled,
         bool local_upload_copy_file,
-        std::size_t stream_chunk_size)
+        std::size_t stream_chunk_size,
+        bool dev_accept_mock_tag)
         : session_store_(session_store), 
           session_quota_size_(session_quota_size),
           local_enabled_(local_enabled),
           local_upload_copy_file_(local_upload_copy_file),
-          stream_chunk_size_(stream_chunk_size) {
+          stream_chunk_size_(stream_chunk_size),
+          dev_accept_mock_tag_(dev_accept_mock_tag)
+        {
     }
 
     std::filesystem::path session_store() const {
@@ -54,6 +57,9 @@ public:
     std::size_t stream_chunk_size() const {
         return stream_chunk_size_;
     }
+    bool dev_accept_mock_tag() const {
+        return dev_accept_mock_tag_;
+    }
 
 private:
     std::filesystem::path session_store_;
@@ -61,6 +67,7 @@ private:
     bool local_enabled_;
     bool local_upload_copy_file_;
     std::size_t stream_chunk_size_;
+    bool dev_accept_mock_tag_;
 };
 
 } // namespace

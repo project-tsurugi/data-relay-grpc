@@ -18,8 +18,8 @@
 
 namespace data_relay_grpc::blob_relay {
 
-blob_session_manager::blob_session_manager(const blob_relay_service::api& api, const std::string& directory, std::size_t quota)
-    : api_(api), session_store_(directory, quota) {
+blob_session_manager::blob_session_manager(const blob_relay_service::api& api, const std::string& directory, std::size_t quota, bool dev_accept_mock_tag)
+    : api_(api), session_store_(directory, quota), dev_accept_mock_tag_(dev_accept_mock_tag) {
 }
 
 blob_session& blob_session_manager::create_session(std::optional<blob_session::transaction_id_type> transaction_id_opt) {
