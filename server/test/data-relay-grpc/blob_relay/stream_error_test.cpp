@@ -365,7 +365,10 @@ TEST_F(stream_error_test, put_no_chunk) {
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::INVALID_ARGUMENT);
 }
 
-TEST_F(stream_error_test, DISABLED_put_file_write_permission) {
+TEST_F(stream_error_test, put_file_write_permission) {
+    // root can write file to write-protected files
+    if (geteuid() == 0) { GTEST_SKIP() << "skip when run by root"; }
+
     start_server();
 
     // the same as 'chmod -w directory_for_session_store'
