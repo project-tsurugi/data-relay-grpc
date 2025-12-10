@@ -81,6 +81,8 @@ install(FILES ${CMAKE_BINARY_DIR}/src/blob_reference.grpc.pb.h
               ${CMAKE_BINARY_DIR}/src/blob_reference.pb.h
               ${CMAKE_BINARY_DIR}/src/blob_relay_streaming.grpc.pb.h
               ${CMAKE_BINARY_DIR}/src/blob_relay_streaming.pb.h
+              ${CMAKE_BINARY_DIR}/src/blob_relay_local.grpc.pb.h
+              ${CMAKE_BINARY_DIR}/src/blob_relay_local.pb.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/data-relay-grpc/data-relay-grpc/proto/blob_relay
         )
 
