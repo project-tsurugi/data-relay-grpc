@@ -77,6 +77,13 @@ set_compile_options(${package_name})
 
 install_custom(${package_name} ${export_name})
 
+install(FILES ${CMAKE_BINARY_DIR}/src/blob_reference.grpc.pb.h
+              ${CMAKE_BINARY_DIR}/src/blob_reference.pb.h
+              ${CMAKE_BINARY_DIR}/src/blob_relay_streaming.grpc.pb.h
+              ${CMAKE_BINARY_DIR}/src/blob_relay_streaming.pb.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/data-relay-grpc/data-relay-grpc/proto/blob_relay
+        )
+
 if(SMOKE_TEST_SUPPORT)
     set(SMOKETEST_PROTO_DIR ${CMAKE_SOURCE_DIR}/test/data-relay-grpc/blob_relay/smoke_test/proto)
     file(GLOB SMOKETEST_PROTO ${SMOKETEST_PROTO_DIR}/*.proto)
