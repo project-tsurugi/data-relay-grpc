@@ -26,9 +26,11 @@ static void signal_handler([[maybe_unused]] int sig) {
     FLAGS_loop = false;
 }
 
+using namespace std::literals::string_literals;
+const static std::string server_address = "localhost:52345"s;
+
 void put(std::uint64_t size) {
     do {
-        std::string server_address{"localhost:50051"};
         data_relay_grpc::blob_relay::session session(server_address);
         data_relay_grpc::blob_relay::Client client(server_address, session.session_id());
 
@@ -42,7 +44,6 @@ void put(std::uint64_t size) {
 
 void get(std::uint64_t size, std::uint64_t jid) {
     do {
-        std::string server_address{"localhost:50051"};
         data_relay_grpc::blob_relay::session session(server_address, jid);
         data_relay_grpc::blob_relay::Client client(server_address, session.session_id());
 
