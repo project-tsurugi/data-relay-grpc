@@ -15,14 +15,12 @@
  */
 #pragma once
 
-#include <cstdint>
+#include <data-relay-grpc/blob_relay/api_version.h>
 
 namespace data_relay_grpc::blob_relay {
 
-constexpr static std::uint64_t compatible_api_version = 0;
-
 static bool check_api_version(std::uint64_t api_version) {
-    if (api_version > compatible_api_version) {
+    if (api_version > BLOB_RELAY_API_VERSION) {
         return false;
     }
     return true;

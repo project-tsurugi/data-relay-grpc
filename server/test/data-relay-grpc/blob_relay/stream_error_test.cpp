@@ -10,6 +10,7 @@
 #include "data-relay-grpc/grpc/grpc_server_test_base.h"
 
 #include <data-relay-grpc/blob_relay/service.h>
+#include <data-relay-grpc/blob_relay/api_version.h>
 #include "data-relay-grpc/blob_relay/streaming_service.h"
 
 namespace data_relay_grpc::blob_relay {
@@ -20,7 +21,6 @@ protected:
     const std::string session_store_name{"session_store"};
     const std::uint64_t transaction_id_for_test = 12345;
     const std::uint64_t tag_for_test = 2468;
-    const std::uint64_t api_version = 0;
     std::uint64_t blob_id_for_test{};
 
     std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_error_test")};
@@ -96,7 +96,7 @@ TEST_F(stream_error_test, get_ok) {
     BlobRelayStreaming::Stub stub(channel);
     ::grpc::ClientContext context;
     GetStreamingRequest req;
-    req.set_api_version(api_version);
+    req.set_api_version(BLOB_RELAY_API_VERSION);
     req.set_session_id(session_->session_id());
     auto* blob = req.mutable_blob();
     blob->set_object_id(blob_id_for_test);
@@ -120,7 +120,7 @@ TEST_F(stream_error_test, get_api_version) {
     BlobRelayStreaming::Stub stub(channel);
     ::grpc::ClientContext context;
     GetStreamingRequest req;
-    req.set_api_version(api_version + 1);  // not compatible
+    req.set_api_version(BLOB_RELAY_API_VERSION + 1);  // not compatible
     req.set_session_id(session_->session_id());
     auto* blob = req.mutable_blob();
     blob->set_object_id(blob_id_for_test);
@@ -144,7 +144,7 @@ TEST_F(stream_error_test, get_invalid_tag) {
     BlobRelayStreaming::Stub stub(channel);
     ::grpc::ClientContext context;
     GetStreamingRequest req;
-    req.set_api_version(api_version);
+    req.set_api_version(BLOB_RELAY_API_VERSION);
     req.set_session_id(session_->session_id());
     auto* blob = req.mutable_blob();
     blob->set_object_id(blob_id_for_test);
@@ -168,7 +168,7 @@ TEST_F(stream_error_test, get_no_session) {
     BlobRelayStreaming::Stub stub(channel);
     ::grpc::ClientContext context;
     GetStreamingRequest req;
-    req.set_api_version(api_version);
+    req.set_api_version(BLOB_RELAY_API_VERSION);
     req.set_session_id(session_->session_id() + 1);  // set sessoin_id that does not exist
     auto* blob = req.mutable_blob();
     blob->set_object_id(blob_id_for_test);
@@ -192,7 +192,7 @@ TEST_F(stream_error_test, get_no_blob_file) {
     BlobRelayStreaming::Stub stub(channel);
     ::grpc::ClientContext context;
     GetStreamingRequest req;
-    req.set_api_version(api_version);
+    req.set_api_version(BLOB_RELAY_API_VERSION);
     req.set_session_id(session_->session_id());
     auto* blob = req.mutable_blob();
     blob->set_object_id(0);  // not exists
@@ -221,7 +221,7 @@ TEST_F(stream_error_test, put_ok) {
     // send metadata
     PutStreamingRequest req_metadata;
     auto* metadata = req_metadata.mutable_metadata();
-    metadata->set_api_version(api_version);
+    metadata->set_api_version(BLOB_RELAY_API_VERSION);
     metadata->set_session_id(session_->session_id());
     if (!writer->Write(req_metadata)) {
         FAIL();
@@ -256,7 +256,7 @@ TEST_F(stream_error_test, put_api_version) {
     // send metadata
     PutStreamingRequest req_metadata;
     auto* metadata = req_metadata.mutable_metadata();
-    metadata->set_api_version(api_version + 1);  // not compatible
+    metadata->set_api_version(BLOB_RELAY_API_VERSION + 1);  // not compatible
     metadata->set_session_id(session_->session_id());
     if (!writer->Write(req_metadata)) {
         FAIL();
@@ -319,7 +319,7 @@ TEST_F(stream_error_test, put_no_session) {
     // send metadata
     PutStreamingRequest req_metadata;
     auto* metadata = req_metadata.mutable_metadata();
-    metadata->set_api_version(api_version);
+    metadata->set_api_version(BLOB_RELAY_API_VERSION);
     if (!writer->Write(req_metadata)) {
         FAIL();
     }
@@ -354,7 +354,7 @@ TEST_F(stream_error_test, put_no_chunk) {
     // send metadata
     PutStreamingRequest req_metadata;
     auto* metadata = req_metadata.mutable_metadata();
-    metadata->set_api_version(api_version);
+    metadata->set_api_version(BLOB_RELAY_API_VERSION);
     metadata->set_session_id(session_->session_id());
     if (!writer->Write(req_metadata)) {
         FAIL();
@@ -386,7 +386,7 @@ TEST_F(stream_error_test, put_file_write_permission) {
     // send metadata
     PutStreamingRequest req_metadata;
     auto* metadata = req_metadata.mutable_metadata();
-    metadata->set_api_version(api_version);
+    metadata->set_api_version(BLOB_RELAY_API_VERSION);
     metadata->set_session_id(session_->session_id());
     if (!writer->Write(req_metadata)) {
         FAIL();

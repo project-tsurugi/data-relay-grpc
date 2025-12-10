@@ -31,8 +31,8 @@ data-relay-grpc/server/data-relay-grpc/blob_relay/
 
 ## Message Versioning
 
-Some data-relay-grpc request/response messages include a `version` field for future compatibility.
-The version value to use for each message is defined as a constant in `grpc/message_versions.h`.
+Some data-relay-grpc request/response messages include a `api_version` field for future compatibility.
+The version value to use for each message is defined as a constant in `api_version.h`.
 Both client and service must check and set the version accordingly.
 
 The initial version number for each message is 1.
