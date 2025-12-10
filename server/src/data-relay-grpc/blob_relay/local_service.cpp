@@ -14,7 +14,7 @@ local_service::local_service(blob_session_manager& session_manager)
                                        const GetLocalRequest* request,
                                        GetLocalResponse* response) {
     if (!check_api_version(request->api_version())) {
-        return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "inappropriate message version");
+        return ::grpc::Status(::grpc::StatusCode::UNAVAILABLE, api_version_error_message(request->api_version()));
     }
 
     auto& session_impl = session_manager_.get_session_impl(request->session_id());
@@ -39,7 +39,7 @@ local_service::local_service(blob_session_manager& session_manager)
                                   const ::data_relay_grpc::blob_relay::PutLocalRequest* request,
                                   PutLocalResponse* response) {
     if (!check_api_version(request->api_version())) {
-        return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "inappropriate message version");
+        return ::grpc::Status(::grpc::StatusCode::UNAVAILABLE, api_version_error_message(request->api_version()));
     }
 
     auto& session_impl = session_manager_.get_session_impl(request->session_id());

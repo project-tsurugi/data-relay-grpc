@@ -134,6 +134,7 @@ TEST_F(stream_error_test, get_api_version) {
     }
     ::grpc::Status status = reader->Finish();
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::UNAVAILABLE);
+    std::cerr << status.error_message () << std::endl;
 }
 
 TEST_F(stream_error_test, get_invalid_tag) {
@@ -276,6 +277,7 @@ TEST_F(stream_error_test, put_api_version) {
     writer->WritesDone();
     ::grpc::Status status = writer->Finish();
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::UNAVAILABLE);
+    std::cerr << status.error_message () << std::endl;
     // send blob data end
 }
 

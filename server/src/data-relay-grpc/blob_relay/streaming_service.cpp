@@ -14,7 +14,7 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
                                       const GetStreamingRequest* request,
                                       ::grpc::ServerWriter< GetStreamingResponse>* writer) {
     if (!check_api_version(request->api_version())) {
-        return ::grpc::Status(::grpc::StatusCode::UNAVAILABLE, "the requested API version is not compatible");
+        return ::grpc::Status(::grpc::StatusCode::UNAVAILABLE, api_version_error_message(request->api_version()));
     }
 
     try {
@@ -101,7 +101,7 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
         return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "the first request is not metadata");
     }
     if (!check_api_version(request.metadata().api_version())) {
-        return ::grpc::Status(::grpc::StatusCode::UNAVAILABLE, "the requested API version is not compatible");
+        return ::grpc::Status(::grpc::StatusCode::UNAVAILABLE, api_version_error_message(request.metadata().api_version()));
     }
     try {
         auto& session_impl = session_manager_.get_session_impl(request.metadata().session_id());
