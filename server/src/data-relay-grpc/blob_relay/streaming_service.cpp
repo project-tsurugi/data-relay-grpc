@@ -30,11 +30,11 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
         auto storage_id = request->blob().storage_id();
         if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kSessionId) {
             session_id = request->session_id();
-            VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", sessin_id = " << session_id;
+            VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", session_id = " << session_id;
         } else if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kTransactionId) {
             transaction_id = request->transaction_id();
             session_id = session_manager_.get_session_id(transaction_id);
-            VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", transaction_id = " << transaction_id << ", sessin_id = " << session_id;
+            VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", transaction_id = " << transaction_id << ", session_id = " << session_id;
         } else {
             VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
             return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "content_id is neither session_id nor transaction_id");
@@ -130,7 +130,7 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
         auto& session_impl = session_manager_.get_session_impl(request.metadata().session_id());
         auto pair = session_impl.create_blob_file();
         blob_session::blob_id_type blob_id = pair.first;
-        VLOG_LP(log_debug) << "accepted request: sessin_id = " << request.metadata().session_id() << ", to be create a blob file with blob_id = " << blob_id << " of session storage";
+        VLOG_LP(log_debug) << "accepted request: session_id = " << request.metadata().session_id() << ", to be create a blob file with blob_id = " << blob_id << " of session storage";
 
         std::ofstream blob_file(pair.second);
         if (!blob_file.is_open()) {
