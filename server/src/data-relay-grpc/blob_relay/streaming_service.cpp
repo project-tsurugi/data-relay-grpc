@@ -19,7 +19,7 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
                                       const GetStreamingRequest* request,
                                       ::grpc::ServerWriter< GetStreamingResponse>* writer) {
     if (!check_api_version(request->api_version())) {
-        VLOG_LP(log_debug) << "finishes Get with UNAVAILABLE";
+        VLOG_LP(log_debug) << "finishes with UNAVAILABLE";
         return ::grpc::Status(::grpc::StatusCode::UNAVAILABLE, api_version_error_message(request->api_version()));
     }
 
@@ -27,15 +27,16 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
         blob_session::session_id_type session_id{};
         blob_session::transaction_id_type transaction_id{};
         blob_session::blob_id_type blob_id = request->blob().object_id();
+        auto storage_id = request->blob().storage_id();
         if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kSessionId) {
             session_id = request->session_id();
-            VLOG_LP(log_debug) << "accepted Get request: blog_id = " <<  blob_id << ", sessin_id = " << session_id;
+            VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", sessin_id = " << session_id;
         } else if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kTransactionId) {
             transaction_id = request->transaction_id();
             session_id = session_manager_.get_session_id(transaction_id);
-            VLOG_LP(log_debug) << "accepted Get request: blog_id = " <<  blob_id << ", transaction_id = " << transaction_id << ", sessin_id = " << session_id;
+            VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", transaction_id = " << transaction_id << ", sessin_id = " << session_id;
         } else {
-            VLOG_LP(log_debug) << "finishes Get with INVALID_ARGUMENT";
+            VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
             return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "content_id is neither session_id nor transaction_id");
         }
 
@@ -43,37 +44,36 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
         if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kTransactionId) {
             if (auto transaction_id_opt = session_impl.get_transaction_id(); transaction_id_opt) {
                 if (transaction_id_opt.value() != transaction_id) {
-                    VLOG_LP(log_debug) << "finishes Get with PERMISSION_DENIED";
+                    VLOG_LP(log_debug) << "finishes with PERMISSION_DENIED";
                     return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "transaction_id does not match with that of the session");
                 }
             } else {
-                VLOG_LP(log_debug) << "finishes Get with PERMISSION_DENIED";
+                VLOG_LP(log_debug) << "finishes with PERMISSION_DENIED";
                 return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the session has no transaction");
             }
         }
 
         blob_session::blob_path_type path{};
-        auto storage_id = request->blob().storage_id();
         if (storage_id == SESSION_STORAGE_ID) {
             if (auto path_opt = session_impl.find(blob_id); path_opt) {
                 path = path_opt.value();
                 VLOG_LP(log_debug) << "going to send BLOB from sessin storage: path = " << path.string();
             } else {
-                VLOG_LP(log_debug) << "finishes Get with NOT_FOUND";
+                VLOG_LP(log_debug) << "finishes with NOT_FOUND";
                 return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "can not find the blob data by the blob_id given");
             }
         } else if (storage_id == LIMESTONE_BLOB_STORE) {
             path = session_manager_.get_path(blob_id);
-            VLOG_LP(log_debug) << "going to send BLOB from limestone blog store: path = " << path.string();
+            VLOG_LP(log_debug) << "going to send BLOB from limestone blob store: path = " << path.string();
         } else {
-            VLOG_LP(log_debug) << "finishes Get with INVALID_ARGUMENT";
+            VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
             return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "storage_id is neither session store nor limestone blob store");
         }
 
-        // should be done after confirming the blog's existence
+        // should be done after confirming the blob's existence
         if (session_impl.compute_tag(blob_id) != request->blob().tag()) {
             if (!session_manager_.dev_accept_mock_tag() || request->blob().tag() != blob_session_manager::MOCK_TAG) {
-                VLOG_LP(log_debug) << "finishes Get with PERMISSION_DENIED";
+                VLOG_LP(log_debug) << "finishes with PERMISSION_DENIED";
                 return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the given tag does not match the desiring value");
             }
         }
@@ -94,17 +94,17 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
                 response.set_chunk(s.data(), size);
                 writer->Write(response);
             }
-            VLOG_LP(log_debug) << "finishes Get normally";
+            VLOG_LP(log_debug) << "finishes normally";
             return ::grpc::Status(::grpc::StatusCode::OK, "");
         } else {
-            VLOG_LP(log_debug) << "finishes Get with NOT_FOUND";
+            VLOG_LP(log_debug) << "finishes with NOT_FOUND";
             return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "an error occurred while reading the blob file");
         }
     } catch (std::out_of_range &ex) {
-        VLOG_LP(log_debug) << "finishes Get with NOT_FOUND";
+        VLOG_LP(log_debug) << "finishes with NOT_FOUND";
         return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, ex.what());
     } catch (std::exception &ex) {
-        VLOG_LP(log_debug) << "finishes Get with INTERNAL";
+        VLOG_LP(log_debug) << "finishes with INTERNAL";
         return ::grpc::Status(::grpc::StatusCode::INTERNAL, ex.what());
     }
 }
@@ -114,33 +114,33 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
                                       PutStreamingResponse* response) {
     PutStreamingRequest request;
     if (!reader->Read(&request)) {
-        VLOG_LP(log_debug) << "finishes Put with INVALID_ARGUMENT";
+        VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
         return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "no request");
     }
 
     if (request.payload_case() != PutStreamingRequest::PayloadCase::kMetadata) {
-        VLOG_LP(log_debug) << "finishes Put with INVALID_ARGUMENT";
+        VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
         return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "the first request is not metadata");
     }
     if (!check_api_version(request.metadata().api_version())) {
-        VLOG_LP(log_debug) << "finishes Put with UNAVAILABLE";
+        VLOG_LP(log_debug) << "finishes with UNAVAILABLE";
         return ::grpc::Status(::grpc::StatusCode::UNAVAILABLE, api_version_error_message(request.metadata().api_version()));
     }
     try {
         auto& session_impl = session_manager_.get_session_impl(request.metadata().session_id());
         auto pair = session_impl.create_blob_file();
         blob_session::blob_id_type blob_id = pair.first;
-        VLOG_LP(log_debug) << "accepted Put request: sessin_id = " << request.metadata().session_id() << ", to be create a blob file with blob_id = " << blob_id;
+        VLOG_LP(log_debug) << "accepted request: sessin_id = " << request.metadata().session_id() << ", to be create a blob file with blob_id = " << blob_id << " of session storage";
 
         std::ofstream blob_file(pair.second);
         if (!blob_file.is_open()) {
-            VLOG_LP(log_debug) << "finishes Put with FAILED_PRECONDITION";
+            VLOG_LP(log_debug) << "finishes with FAILED_PRECONDITION";
             return ::grpc::Status(::grpc::StatusCode::FAILED_PRECONDITION, "cannot open the file to write the blob to");
         }
         bool has_chunk{};
         while (reader->Read(&request)) {
             if (request.payload_case() != PutStreamingRequest::PayloadCase::kChunk) {
-                VLOG_LP(log_debug) << "finishes Put with INVALID_ARGUMENT";
+                VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
                 return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "A subsequent requests is not chunk");
             }
             auto& chunk = request.chunk();
@@ -148,7 +148,7 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
             if (!session_impl.reserve_session_store(blob_id, chunk.size())) {
                 blob_file.close();
                 session_impl.delete_blob_file(blob_id);
-                VLOG_LP(log_debug) << "finishes Put with RESOURCE_EXHAUSTED";
+                VLOG_LP(log_debug) << "finishes with RESOURCE_EXHAUSTED";
                 return ::grpc::Status(::grpc::StatusCode::RESOURCE_EXHAUSTED, "session storage usage has reached its limit");
             }
             blob_file.write(chunk.data(), chunk.size());
@@ -157,17 +157,17 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
         VLOG_LP(log_debug) << "finishes blob file reception, blob_id = " << blob_id;
         if (has_chunk) {
             auto* blob = response->mutable_blob();
-            blob->set_storage_id(0);
+            blob->set_storage_id(SESSION_STORAGE_ID);
             blob->set_object_id(blob_id);
-            VLOG_LP(log_debug) << "finishes Put normally";
+            VLOG_LP(log_debug) << "finishes normally";
             return ::grpc::Status(::grpc::StatusCode::OK, "");
         } else {
             std::filesystem::remove(pair.second);
-            VLOG_LP(log_debug) << "finishes Put with INVALID_ARGUMENT";
+            VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
             return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "no chunk has been sent");
         }
     } catch (std::out_of_range &ex) {
-        VLOG_LP(log_debug) << "finishes Put with NOT_FOUND";
+        VLOG_LP(log_debug) << "finishes with NOT_FOUND";
         return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, ex.what());
     }
 }

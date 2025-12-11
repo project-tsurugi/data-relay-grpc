@@ -1,6 +1,8 @@
 #pragma once
 #include <grpcpp/grpcpp.h>
 
+#include <string_view>
+
 #include "blob_relay_streaming.grpc.pb.h"
 #include "blob_relay_streaming.pb.h"
 #include "session_manager.h"
@@ -36,6 +38,11 @@ private:
     std::size_t chunk_size_;
     constexpr static std::uint64_t SESSION_STORAGE_ID = 0;
     constexpr static std::uint64_t LIMESTONE_BLOB_STORE = 1;
+
+    static std::string_view storage_name(std::uint64_t sid) {
+        using namespace std::string_view_literals;
+        return sid == SESSION_STORAGE_ID ? "session storage"sv : "limestone blob store"sv;
+    }
 };
 
 } // namespace data_relay_grpc::blob_relay
