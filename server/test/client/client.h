@@ -81,6 +81,7 @@ public:
         proto::PutStreamingRequest req_metadata;
         auto* metadata = req_metadata.mutable_metadata();
         metadata->set_session_id(session_id_ + ((FLAGS_fault == 1) ? 1: 0));  // fault 1
+        metadata->set_blob_size(size + ((FLAGS_fault == 6) ? 1: 0));          // fault 6
         if (!writer->Write(req_metadata)) {
             throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
         }
@@ -125,11 +126,21 @@ public:
         if (!blob_file) {
             throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
         }
-        while (reader->Read(&resp)) {
-            auto& chunk = resp.chunk();
-            blob_file.write(chunk.data(), chunk.length());
+        if (reader->Read(&resp)) {
+            if (resp.payload_case() != proto::GetStreamingResponse::PayloadCase::kMetadata) {
+                throw std::runtime_error("first response is not a metadata");
+            }
+            std::size_t blob_size = resp.metadata().blob_size();  // streaming_service always set blob_size
+
+            while (reader->Read(&resp)) {
+                auto& chunk = resp.chunk();
+                blob_file.write(chunk.data(), chunk.length());
+            }
+            blob_file.close();
+            if (std::filesystem::file_size(path) != blob_size) {
+                throw std::runtime_error("inconsistent blob size");
+            }
         }
-        blob_file.close();
         ::grpc::Status status = reader->Finish();
         if (status.error_code() != ::grpc::StatusCode::OK) {
             throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__) + ", message = `" + status.error_message () + "'");

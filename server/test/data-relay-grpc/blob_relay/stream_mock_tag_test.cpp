@@ -107,12 +107,22 @@ TEST_F(stream_mock_tag_test, get_ok) {
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;
+    reader->Read(&resp);
+    if (resp.payload_case() != GetStreamingResponse::PayloadCase::kMetadata) {
+        FAIL();
+    }
+    std::size_t blob_size = resp.metadata().blob_size();  // streaming_service always set blob_size
+
     std::string blob_data{};
     while (reader->Read(&resp)) {
+        if (resp.payload_case() != GetStreamingResponse::PayloadCase::kChunk) {
+            FAIL();
+        }
         blob_data += resp.chunk();
     }
     ::grpc::Status status = reader->Finish();
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
+    EXPECT_EQ(blob_data.size(), blob_size);
 }
 
 TEST_F(stream_mock_tag_test, get_with_mocktag_ng) {
@@ -142,9 +152,8 @@ TEST_F(stream_mock_tag_test, get_with_mocktag_ng) {
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;
-    std::string blob_data{};
-    while (reader->Read(&resp)) {
-        blob_data += resp.chunk();
+    if (reader->Read(&resp)) {
+        FAIL();
     }
     ::grpc::Status status = reader->Finish();
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::PERMISSION_DENIED);
@@ -177,12 +186,22 @@ TEST_F(stream_mock_tag_test, get_with_mocktag_ok) {
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;
+    reader->Read(&resp);
+    if (resp.payload_case() != GetStreamingResponse::PayloadCase::kMetadata) {
+        FAIL();
+    }
+    std::size_t blob_size = resp.metadata().blob_size();  // streaming_service always set blob_size
+
     std::string blob_data{};
     while (reader->Read(&resp)) {
+        if (resp.payload_case() != GetStreamingResponse::PayloadCase::kChunk) {
+            FAIL();
+        }
         blob_data += resp.chunk();
     }
     ::grpc::Status status = reader->Finish();
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
+    EXPECT_EQ(blob_data.size(), blob_size);
 }
 
 } // namespace
