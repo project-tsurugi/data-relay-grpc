@@ -27,10 +27,11 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
         blob_session::session_id_type session_id{};
         blob_session::transaction_id_type transaction_id{};
         blob_session::blob_id_type blob_id = request->blob().object_id();
+        blob_session::blob_tag_type blob_tag = request->blob().tag();
         auto storage_id = request->blob().storage_id();
         if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kSessionId) {
             session_id = request->session_id();
-            VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", session_id = " << session_id;
+            VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", session_id = " << session_id << ", tag = " << blob_tag;
         } else if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kTransactionId) {
             transaction_id = request->transaction_id();
             session_id = session_manager_.get_session_id(transaction_id);
@@ -71,8 +72,8 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
         }
 
         // should be done after confirming the blob's existence
-        if (session_impl.compute_tag(blob_id) != request->blob().tag()) {
-            if (!session_manager_.dev_accept_mock_tag() || request->blob().tag() != blob_session_manager::MOCK_TAG) {
+        if (session_impl.compute_tag(blob_id) != blob_tag) {
+            if (!session_manager_.dev_accept_mock_tag() || blob_tag != blob_session_manager::MOCK_TAG) {
                 VLOG_LP(log_debug) << "finishes with PERMISSION_DENIED";
                 return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the given tag does not match the desiring value");
             }
