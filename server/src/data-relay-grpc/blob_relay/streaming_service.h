@@ -11,9 +11,11 @@ namespace data_relay_grpc::blob_relay {
 
 using data_relay_grpc::blob_relay::proto::BlobRelayStreaming;
 using data_relay_grpc::blob_relay::proto::PutStreamingRequest;
+using data_relay_grpc::blob_relay::proto::PutStreamingRequest_Metadata;
 using data_relay_grpc::blob_relay::proto::PutStreamingResponse;
 using data_relay_grpc::blob_relay::proto::GetStreamingRequest;
 using data_relay_grpc::blob_relay::proto::GetStreamingResponse;
+using data_relay_grpc::blob_relay::proto::GetStreamingResponse_Metadata;
 
 class streaming_service final : public BlobRelayStreaming::Service {
 public:

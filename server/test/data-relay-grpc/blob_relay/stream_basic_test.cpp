@@ -10,6 +10,7 @@
 #include "data-relay-grpc/grpc/grpc_server_test_base.h"
 
 #include <data-relay-grpc/blob_relay/service.h>
+#include <data-relay-grpc/blob_relay/api_version.h>
 #include "data-relay-grpc/blob_relay/streaming_service.h"
 
 namespace data_relay_grpc::blob_relay {
@@ -95,6 +96,7 @@ TEST_F(tream_basic_test, get) {
     BlobRelayStreaming::Stub stub(channel);
     ::grpc::ClientContext context;
     GetStreamingRequest req;
+    req.set_api_version(BLOB_RELAY_API_VERSION);
     req.set_session_id(session_->session_id());
     auto* blob = req.mutable_blob();
     blob->set_object_id(blob_id_for_test);
@@ -102,8 +104,17 @@ TEST_F(tream_basic_test, get) {
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;
+    reader->Read(&resp);
+    if (resp.payload_case() != GetStreamingResponse::PayloadCase::kMetadata) {
+        FAIL();
+    }
+    std::size_t blob_size = resp.metadata().blob_size();  // streaming_service always set blob_size
+
     std::string blob_data{};
     while (reader->Read(&resp)) {
+        if (resp.payload_case() != GetStreamingResponse::PayloadCase::kChunk) {
+            FAIL();
+        }
         blob_data += resp.chunk();
     }
     ::grpc::Status status = reader->Finish();
@@ -111,6 +122,7 @@ TEST_F(tream_basic_test, get) {
     std::ifstream ifs(helper_->last_path());
     std::string s{std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>()};
     EXPECT_EQ(blob_data, s);
+    EXPECT_EQ(blob_data.size(), blob_size);
 }
 
 TEST_F(tream_basic_test, put) {
@@ -126,7 +138,9 @@ TEST_F(tream_basic_test, put) {
     // send metadata
     PutStreamingRequest req_metadata;
     auto* metadata = req_metadata.mutable_metadata();
+    metadata->set_api_version(BLOB_RELAY_API_VERSION);
     metadata->set_session_id(session_->session_id());
+    metadata->set_blob_size(test_partial_blob.size() * 10);
     if (!writer->Write(req_metadata)) {
         FAIL();
     }

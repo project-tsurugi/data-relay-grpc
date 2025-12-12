@@ -9,6 +9,7 @@
 #include "data-relay-grpc/grpc/grpc_server_test_base.h"
 
 #include <data-relay-grpc/blob_relay/service.h>
+#include <data-relay-grpc/blob_relay/api_version.h>
 #include "data-relay-grpc/blob_relay/streaming_service.h"
 
 namespace data_relay_grpc::blob_relay {
@@ -61,7 +62,9 @@ protected:
         // send metadata
         PutStreamingRequest req_metadata;
         auto* metadata = req_metadata.mutable_metadata();
+        metadata->set_api_version(BLOB_RELAY_API_VERSION);
         metadata->set_session_id(session_->session_id());
+        metadata->set_blob_size(test_partial_blob.size() * 10);
         if (!writer->Write(req_metadata)) {
             FAIL();
         }
