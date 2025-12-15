@@ -10,6 +10,7 @@
 #include "data-relay-grpc/grpc/grpc_server_test_base.h"
 
 #include <data-relay-grpc/blob_relay/service.h>
+#include <data-relay-grpc/blob_relay/api_version.h>
 #include "data-relay-grpc/blob_relay/streaming_service.h"
 
 namespace data_relay_grpc::blob_relay {
@@ -95,6 +96,7 @@ TEST_F(tream_basic_test, get) {
     BlobRelayStreaming::Stub stub(channel);
     ::grpc::ClientContext context;
     GetStreamingRequest req;
+    req.set_api_version(BLOB_RELAY_API_VERSION);
     req.set_session_id(session_->session_id());
     auto* blob = req.mutable_blob();
     blob->set_object_id(blob_id_for_test);
@@ -102,8 +104,17 @@ TEST_F(tream_basic_test, get) {
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;
+    reader->Read(&resp);
+    if (resp.payload_case() != GetStreamingResponse::PayloadCase::kMetadata) {
+        FAIL();
+    }
+    std::size_t blob_size = resp.metadata().blob_size();  // streaming_service always set blob_size
+
     std::string blob_data{};
     while (reader->Read(&resp)) {
+        if (resp.payload_case() != GetStreamingResponse::PayloadCase::kChunk) {
+            FAIL();
+        }
         blob_data += resp.chunk();
     }
     ::grpc::Status status = reader->Finish();
@@ -111,6 +122,7 @@ TEST_F(tream_basic_test, get) {
     std::ifstream ifs(helper_->last_path());
     std::string s{std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>()};
     EXPECT_EQ(blob_data, s);
+    EXPECT_EQ(blob_data.size(), blob_size);
 }
 
 TEST_F(tream_basic_test, put) {
@@ -126,6 +138,57 @@ TEST_F(tream_basic_test, put) {
     // send metadata
     PutStreamingRequest req_metadata;
     auto* metadata = req_metadata.mutable_metadata();
+    metadata->set_api_version(BLOB_RELAY_API_VERSION);
+    metadata->set_session_id(session_->session_id());
+    metadata->set_blob_size(test_partial_blob.size() * 10);
+    if (!writer->Write(req_metadata)) {
+        FAIL();
+    }
+
+    // send blob data begin
+    PutStreamingRequest req_chunk;
+    std::stringstream ss{};
+    for (int i = 0; i < 10; i++) {
+        req_chunk.set_chunk(test_partial_blob);
+        ss << test_partial_blob;
+        if (!writer->Write(req_chunk)) {
+            FAIL();
+        }
+    }
+    writer->WritesDone();
+    ::grpc::Status status = writer->Finish();
+    EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
+    // send blob data end
+
+    auto& session_manager = get_session_manager();
+    try {
+        auto& session_impl = session_manager.get_session_impl(session_->session_id());
+        if (auto path = session_impl.find(res.blob().object_id()); path) {
+            std::ifstream ifs(path.value());
+            std::string s{std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>()};
+            EXPECT_EQ(ss.str(), s);
+        } else {
+            FAIL();
+        }
+    } catch (std::runtime_error &ex) {
+        FAIL();
+    }
+}
+
+TEST_F(tream_basic_test, put_without_size) {
+    start_server();
+
+    auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+    BlobRelayStreaming::Stub stub(channel);
+    ::grpc::ClientContext context;
+
+    PutStreamingResponse res;
+    std::unique_ptr<::grpc::ClientWriter<PutStreamingRequest> > writer(stub.Put(&context, &res));
+
+    // send metadata
+    PutStreamingRequest req_metadata;
+    auto* metadata = req_metadata.mutable_metadata();
+    metadata->set_api_version(BLOB_RELAY_API_VERSION);
     metadata->set_session_id(session_->session_id());
     if (!writer->Write(req_metadata)) {
         FAIL();
@@ -153,6 +216,43 @@ TEST_F(tream_basic_test, put) {
             std::ifstream ifs(path.value());
             std::string s{std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>()};
             EXPECT_EQ(ss.str(), s);
+        } else {
+            FAIL();
+        }
+    } catch (std::runtime_error &ex) {
+        FAIL();
+    }
+}
+
+TEST_F(tream_basic_test, put_without_size_no_chunk) {
+    start_server();
+
+    auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+    BlobRelayStreaming::Stub stub(channel);
+    ::grpc::ClientContext context;
+
+    PutStreamingResponse res;
+    std::unique_ptr<::grpc::ClientWriter<PutStreamingRequest> > writer(stub.Put(&context, &res));
+
+    // send metadata
+    PutStreamingRequest req_metadata;
+    auto* metadata = req_metadata.mutable_metadata();
+    metadata->set_api_version(BLOB_RELAY_API_VERSION);
+    metadata->set_session_id(session_->session_id());
+    if (!writer->Write(req_metadata)) {
+        FAIL();
+    }
+
+    writer->WritesDone();
+    ::grpc::Status status = writer->Finish();
+    EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
+    // send blob data end
+
+    auto& session_manager = get_session_manager();
+    try {
+        auto& session_impl = session_manager.get_session_impl(session_->session_id());
+        if (auto path = session_impl.find(res.blob().object_id()); path) {
+            EXPECT_EQ(std::filesystem::file_size(path.value()), 0);
         } else {
             FAIL();
         }

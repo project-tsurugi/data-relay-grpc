@@ -104,12 +104,24 @@ TEST_F(stream_error_test, get_ok) {
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;
+    if (!reader->Read(&resp)) {
+        FAIL();
+    }
+    if (resp.payload_case() != GetStreamingResponse::PayloadCase::kMetadata) {
+        FAIL();
+    }
+    std::size_t blob_size = resp.metadata().blob_size();  // streaming_service always set blob_size
+
     std::string blob_data{};
     while (reader->Read(&resp)) {
+        if (resp.payload_case() != GetStreamingResponse::PayloadCase::kChunk) {
+            FAIL();
+        }
         blob_data += resp.chunk();
     }
     ::grpc::Status status = reader->Finish();
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
+    EXPECT_EQ(blob_data.size(), blob_size);
 }
 
 TEST_F(stream_error_test, get_api_version) {
@@ -128,9 +140,8 @@ TEST_F(stream_error_test, get_api_version) {
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;
-    std::string blob_data{};
-    while (reader->Read(&resp)) {
-        blob_data += resp.chunk();
+    if (reader->Read(&resp)) {
+        FAIL();
     }
     ::grpc::Status status = reader->Finish();
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::UNAVAILABLE);
@@ -153,9 +164,8 @@ TEST_F(stream_error_test, get_invalid_tag) {
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;
-    std::string blob_data{};
-    while (reader->Read(&resp)) {
-        blob_data += resp.chunk();
+    if (reader->Read(&resp)) {
+        FAIL();
     }
     ::grpc::Status status = reader->Finish();
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::PERMISSION_DENIED);
@@ -177,9 +187,8 @@ TEST_F(stream_error_test, get_no_session) {
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;
-    std::string blob_data{};
-    while (reader->Read(&resp)) {
-        blob_data += resp.chunk();
+    if (reader->Read(&resp)) {
+        FAIL();
     }
     ::grpc::Status status = reader->Finish();
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::NOT_FOUND);
@@ -201,9 +210,8 @@ TEST_F(stream_error_test, get_no_blob_file) {
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;
-    std::string blob_data{};
-    while (reader->Read(&resp)) {
-        blob_data += resp.chunk();
+    if (reader->Read(&resp)) {
+        FAIL();
     }
     ::grpc::Status status = reader->Finish();
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::NOT_FOUND);
@@ -224,6 +232,7 @@ TEST_F(stream_error_test, put_ok) {
     auto* metadata = req_metadata.mutable_metadata();
     metadata->set_api_version(BLOB_RELAY_API_VERSION);
     metadata->set_session_id(session_->session_id());
+    metadata->set_blob_size(test_partial_blob.size() * 10);
     if (!writer->Write(req_metadata)) {
         FAIL();
     }
@@ -259,6 +268,7 @@ TEST_F(stream_error_test, put_api_version) {
     auto* metadata = req_metadata.mutable_metadata();
     metadata->set_api_version(BLOB_RELAY_API_VERSION + 1);  // not compatible
     metadata->set_session_id(session_->session_id());
+    metadata->set_blob_size(test_partial_blob.size() * 10);
     if (!writer->Write(req_metadata)) {
         FAIL();
     }
@@ -322,6 +332,7 @@ TEST_F(stream_error_test, put_no_session) {
     PutStreamingRequest req_metadata;
     auto* metadata = req_metadata.mutable_metadata();
     metadata->set_api_version(BLOB_RELAY_API_VERSION);
+    metadata->set_blob_size(test_partial_blob.size() * 10);
     if (!writer->Write(req_metadata)) {
         FAIL();
     }
@@ -343,7 +354,7 @@ TEST_F(stream_error_test, put_no_session) {
     // send blob data end
 }
 
-TEST_F(stream_error_test, put_no_chunk) {
+TEST_F(stream_error_test, put_blob_size_mismatch) {
     start_server();
 
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
@@ -358,6 +369,7 @@ TEST_F(stream_error_test, put_no_chunk) {
     auto* metadata = req_metadata.mutable_metadata();
     metadata->set_api_version(BLOB_RELAY_API_VERSION);
     metadata->set_session_id(session_->session_id());
+    metadata->set_blob_size(test_partial_blob.size() * 10 + 1);
     if (!writer->Write(req_metadata)) {
         FAIL();
     }
@@ -390,6 +402,7 @@ TEST_F(stream_error_test, put_file_write_permission) {
     auto* metadata = req_metadata.mutable_metadata();
     metadata->set_api_version(BLOB_RELAY_API_VERSION);
     metadata->set_session_id(session_->session_id());
+    metadata->set_blob_size(test_partial_blob.size() * 10);
     if (!writer->Write(req_metadata)) {
         FAIL();
     }

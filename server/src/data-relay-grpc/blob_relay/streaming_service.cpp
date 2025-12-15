@@ -1,4 +1,5 @@
 #include <fstream>
+#include <optional>
 
 #include "session_manager.h"
 #include "streaming_service.h"
@@ -79,8 +80,16 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
             }
         }
 
-        GetStreamingResponse response{};
         if (std::filesystem::exists(path)) {
+            GetStreamingResponse response{};
+
+            // metadata
+            auto* metadata = response.mutable_metadata();
+            metadata->set_blob_size(std::filesystem::file_size(path));
+            writer->Write(response);
+
+            // chunk
+            response.clear_metadata();
             std::ifstream ifs(path);
             std::string s{};
             s.resize(chunk_size_);
@@ -88,8 +97,6 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
                 ifs.read(s.data(), s.length());
                 auto size = ifs.gcount();
                 if (size == 0) {
-                    response.clear_chunk();
-                    writer->Write(response);
                     return ::grpc::Status(::grpc::StatusCode::OK, "");
                 }
                 response.set_chunk(s.data(), size);
@@ -123,9 +130,14 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
         VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
         return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "the first request is not metadata");
     }
-    if (!check_api_version(request.metadata().api_version())) {
+    auto& metadata = request.metadata();
+    if (!check_api_version(metadata.api_version())) {
         VLOG_LP(log_debug) << "finishes with UNAVAILABLE";
-        return ::grpc::Status(::grpc::StatusCode::UNAVAILABLE, api_version_error_message(request.metadata().api_version()));
+        return ::grpc::Status(::grpc::StatusCode::UNAVAILABLE, api_version_error_message(metadata.api_version()));
+    }
+    std::optional<std::size_t> blob_size_opt{};
+    if (metadata.blob_size_opt_case() == PutStreamingRequest_Metadata::BlobSizeOptCase::kBlobSize) {
+        blob_size_opt = metadata.blob_size();
     }
     try {
         auto& session_impl = session_manager_.get_session_impl(request.metadata().session_id());
@@ -138,14 +150,13 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
             VLOG_LP(log_debug) << "finishes with FAILED_PRECONDITION";
             return ::grpc::Status(::grpc::StatusCode::FAILED_PRECONDITION, "cannot open the file to write the blob to");
         }
-        bool has_chunk{};
+        std::size_t total_size{};
         while (reader->Read(&request)) {
             if (request.payload_case() != PutStreamingRequest::PayloadCase::kChunk) {
                 VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
                 return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "A subsequent requests is not chunk");
             }
             auto& chunk = request.chunk();
-            has_chunk = true;
             if (!session_impl.reserve_session_store(blob_id, chunk.size())) {
                 blob_file.close();
                 session_impl.delete_blob_file(blob_id);
@@ -153,20 +164,23 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
                 return ::grpc::Status(::grpc::StatusCode::RESOURCE_EXHAUSTED, "session storage usage has reached its limit");
             }
             blob_file.write(chunk.data(), chunk.size());
+            total_size += chunk.size();
         }
         blob_file.close();
         VLOG_LP(log_debug) << "finishes blob file reception, blob_id = " << blob_id;
-        if (has_chunk) {
-            auto* blob = response->mutable_blob();
-            blob->set_storage_id(SESSION_STORAGE_ID);
-            blob->set_object_id(blob_id);
-            VLOG_LP(log_debug) << "finishes normally";
-            return ::grpc::Status(::grpc::StatusCode::OK, "");
-        } else {
-            std::filesystem::remove(pair.second);
-            VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
-            return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "no chunk has been sent");
+        if (blob_size_opt) {
+            if (blob_size_opt.value() != total_size) {
+                std::filesystem::remove(pair.second);
+                VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
+                return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "the size in the metadata does not match the size of the sent blob");
+            }
         }
+
+        auto* blob = response->mutable_blob();
+        blob->set_storage_id(SESSION_STORAGE_ID);
+        blob->set_object_id(blob_id);
+        VLOG_LP(log_debug) << "finishes normally";
+        return ::grpc::Status(::grpc::StatusCode::OK, "");
     } catch (std::out_of_range &ex) {
         VLOG_LP(log_debug) << "finishes with NOT_FOUND";
         return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, ex.what());
