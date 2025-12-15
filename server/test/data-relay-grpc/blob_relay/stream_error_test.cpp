@@ -354,7 +354,7 @@ TEST_F(stream_error_test, put_no_session) {
     // send blob data end
 }
 
-TEST_F(stream_error_test, put_diff_size) {
+TEST_F(stream_error_test, put_blob_size_mismatch) {
     start_server();
 
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());

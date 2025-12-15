@@ -175,4 +175,90 @@ TEST_F(tream_basic_test, put) {
     }
 }
 
+TEST_F(tream_basic_test, put_without_size) {
+    start_server();
+
+    auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+    BlobRelayStreaming::Stub stub(channel);
+    ::grpc::ClientContext context;
+
+    PutStreamingResponse res;
+    std::unique_ptr<::grpc::ClientWriter<PutStreamingRequest> > writer(stub.Put(&context, &res));
+
+    // send metadata
+    PutStreamingRequest req_metadata;
+    auto* metadata = req_metadata.mutable_metadata();
+    metadata->set_api_version(BLOB_RELAY_API_VERSION);
+    metadata->set_session_id(session_->session_id());
+    if (!writer->Write(req_metadata)) {
+        FAIL();
+    }
+
+    // send blob data begin
+    PutStreamingRequest req_chunk;
+    std::stringstream ss{};
+    for (int i = 0; i < 10; i++) {
+        req_chunk.set_chunk(test_partial_blob);
+        ss << test_partial_blob;
+        if (!writer->Write(req_chunk)) {
+            FAIL();
+        }
+    }
+    writer->WritesDone();
+    ::grpc::Status status = writer->Finish();
+    EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
+    // send blob data end
+
+    auto& session_manager = get_session_manager();
+    try {
+        auto& session_impl = session_manager.get_session_impl(session_->session_id());
+        if (auto path = session_impl.find(res.blob().object_id()); path) {
+            std::ifstream ifs(path.value());
+            std::string s{std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>()};
+            EXPECT_EQ(ss.str(), s);
+        } else {
+            FAIL();
+        }
+    } catch (std::runtime_error &ex) {
+        FAIL();
+    }
+}
+
+TEST_F(tream_basic_test, put_without_size_no_chunk) {
+    start_server();
+
+    auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+    BlobRelayStreaming::Stub stub(channel);
+    ::grpc::ClientContext context;
+
+    PutStreamingResponse res;
+    std::unique_ptr<::grpc::ClientWriter<PutStreamingRequest> > writer(stub.Put(&context, &res));
+
+    // send metadata
+    PutStreamingRequest req_metadata;
+    auto* metadata = req_metadata.mutable_metadata();
+    metadata->set_api_version(BLOB_RELAY_API_VERSION);
+    metadata->set_session_id(session_->session_id());
+    if (!writer->Write(req_metadata)) {
+        FAIL();
+    }
+
+    writer->WritesDone();
+    ::grpc::Status status = writer->Finish();
+    EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
+    // send blob data end
+
+    auto& session_manager = get_session_manager();
+    try {
+        auto& session_impl = session_manager.get_session_impl(session_->session_id());
+        if (auto path = session_impl.find(res.blob().object_id()); path) {
+            EXPECT_EQ(std::filesystem::file_size(path.value()), 0);
+        } else {
+            FAIL();
+        }
+    } catch (std::runtime_error &ex) {
+        FAIL();
+    }
+}
+
 } // namespace

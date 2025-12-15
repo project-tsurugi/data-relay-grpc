@@ -14,6 +14,7 @@
 
 #include <gflags/gflags.h>
 
+#include <data-relay-grpc/blob_relay/api_version.h>
 #include "blob_relay_streaming.grpc.pb.h"
 
 DECLARE_uint32(fault);
@@ -80,6 +81,7 @@ public:
         // send metadata
         proto::PutStreamingRequest req_metadata;
         auto* metadata = req_metadata.mutable_metadata();
+        metadata->set_api_version(BLOB_RELAY_API_VERSION);
         metadata->set_session_id(session_id_ + ((FLAGS_fault == 1) ? 1: 0));  // fault 1
         metadata->set_blob_size(size + ((FLAGS_fault == 6) ? 1: 0));          // fault 6
         if (!writer->Write(req_metadata)) {
@@ -114,6 +116,7 @@ public:
         proto::BlobRelayStreaming::Stub stub(channel);
         ::grpc::ClientContext context;
         proto::GetStreamingRequest req;
+        req.set_api_version(BLOB_RELAY_API_VERSION);
         req.set_session_id(session_id_ + ((FLAGS_fault == 1) ? 1: 0));  // fault 1
         auto* blob = req.mutable_blob();
         blob->set_object_id(blob_id + ((FLAGS_fault == 5) ? 1: 0));  // fault 5

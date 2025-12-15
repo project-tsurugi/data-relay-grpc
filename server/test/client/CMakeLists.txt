@@ -53,6 +53,7 @@ set_target_properties(test_client
         )
 
 target_include_directories(test_client
+        PRIVATE ${CMAKE_SOURCE_DIR}/include
         PRIVATE ${CMAKE_BINARY_DIR}/src
         PRIVATE ${CMAKE_BINARY_DIR}/test
         PRIVATE ${CMAKE_BINARY_DIR}/test/client
