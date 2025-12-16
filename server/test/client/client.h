@@ -15,7 +15,7 @@
 #include <gflags/gflags.h>
 
 #include <data-relay-grpc/blob_relay/api_version.h>
-#include "blob_relay_streaming.grpc.pb.h"
+#include "data_relay_grpc/proto/blob_relay/blob_relay_streaming.grpc.pb.h"
 
 DECLARE_uint32(fault);
 DECLARE_bool(vervose);
@@ -73,13 +73,13 @@ public:
 
     std::uint64_t put(std::size_t size) {
         auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
-        proto::BlobRelayStreaming::Stub stub(channel);
+        proto::blob_relay::blob_relay_streaming::BlobRelayStreaming::Stub stub(channel);
         ::grpc::ClientContext context;
 
-        std::unique_ptr<::grpc::ClientWriter<proto::PutStreamingRequest> > writer(stub.Put(&context, &res_));
+        std::unique_ptr<::grpc::ClientWriter<proto::blob_relay::blob_relay_streaming::PutStreamingRequest> > writer(stub.Put(&context, &res_));
 
         // send metadata
-        proto::PutStreamingRequest req_metadata;
+        proto::blob_relay::blob_relay_streaming::PutStreamingRequest req_metadata;
         auto* metadata = req_metadata.mutable_metadata();
         metadata->set_api_version(BLOB_RELAY_API_VERSION);
         metadata->set_session_id(session_id_ + ((FLAGS_fault == 1) ? 1: 0));  // fault 1
@@ -93,7 +93,7 @@ public:
             std::this_thread::sleep_for(std::chrono::minutes(2));  // fault 2
         }
         // send blob data begin
-        proto::PutStreamingRequest req_chunk;
+        proto::blob_relay::blob_relay_streaming::PutStreamingRequest req_chunk;
         std::size_t transfered_size{};
         do {
             std::size_t chunk_size = std::min(reference_.length(), size - transfered_size);
@@ -113,24 +113,24 @@ public:
 
     void get(std::uint64_t blob_id, std::uint64_t tag, std::filesystem::path path) {
         auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
-        proto::BlobRelayStreaming::Stub stub(channel);
+        proto::blob_relay::blob_relay_streaming::BlobRelayStreaming::Stub stub(channel);
         ::grpc::ClientContext context;
-        proto::GetStreamingRequest req;
+        proto::blob_relay::blob_relay_streaming::GetStreamingRequest req;
         req.set_api_version(BLOB_RELAY_API_VERSION);
         req.set_session_id(session_id_ + ((FLAGS_fault == 1) ? 1: 0));  // fault 1
         auto* blob = req.mutable_blob();
         blob->set_object_id(blob_id + ((FLAGS_fault == 5) ? 1: 0));  // fault 5
         blob->set_tag(tag + ((FLAGS_fault == 3) ? 1: 0));  // fault 3
 
-        std::unique_ptr<::grpc::ClientReader<proto::GetStreamingResponse> > reader(stub.Get(&context, req));
+        std::unique_ptr<::grpc::ClientReader<proto::blob_relay::blob_relay_streaming::GetStreamingResponse> > reader(stub.Get(&context, req));
 
-        proto::GetStreamingResponse resp;
+        proto::blob_relay::blob_relay_streaming::GetStreamingResponse resp;
         std::ofstream blob_file(path);
         if (!blob_file) {
             throw std::runtime_error(std::string("error in ") + __func__ + " at " + std::to_string(__LINE__));
         }
         if (reader->Read(&resp)) {
-            if (resp.payload_case() != proto::GetStreamingResponse::PayloadCase::kMetadata) {
+            if (resp.payload_case() != proto::blob_relay::blob_relay_streaming::GetStreamingResponse::PayloadCase::kMetadata) {
                 throw std::runtime_error("first response is not a metadata");
             }
             std::size_t blob_size = resp.metadata().blob_size();  // streaming_service always set blob_size
@@ -191,8 +191,8 @@ public:
 private:
     std::string server_address_;
     std::size_t session_id_;
-    std::unique_ptr<proto::BlobRelayStreaming::Stub> stub_;
-    proto::PutStreamingResponse res_;
+    std::unique_ptr<proto::blob_relay::blob_relay_streaming::BlobRelayStreaming::Stub> stub_;
+    proto::blob_relay::blob_relay_streaming::PutStreamingResponse res_;
     test_blob reference_{};
 };
 

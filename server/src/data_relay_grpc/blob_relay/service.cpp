@@ -20,7 +20,7 @@
 #include "streaming_service.h"
 #include "local_service.h"
 #ifdef SMOKE_TEST_SUPPORT
-#include "data-relay-grpc/blob_relay/smoke_test/support.h"
+#include "data_relay_grpc/blob_relay/smoke_test/support.h"
 #endif
 
 namespace data_relay_grpc::blob_relay {

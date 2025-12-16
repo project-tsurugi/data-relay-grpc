@@ -6,7 +6,7 @@ find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
 
 # For protos used in test only
 file(GLOB TEST_PROTO_FILES
-        ${CMAKE_SOURCE_DIR}/test/data-relay-grpc/grpc/proto/*.proto
+        ${CMAKE_SOURCE_DIR}/test/data_relay_grpc/grpc/proto/*.proto
         ${CMAKE_SOURCE_DIR}/test/tateyama/proto/*.proto
         ${CMAKE_SOURCE_DIR}/test/tateyama/proto/*/*.proto
 )
@@ -42,17 +42,19 @@ add_executable(${test_target}
         )
 
 add_dependencies(${test_target}
+        build_protos
         test_protos
         )
 
 target_include_directories(${test_target}
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-        PRIVATE ${CMAKE_BINARY_DIR}/src
+        PRIVATE ${CMAKE_BINARY_DIR}/src/protos
         PRIVATE ${CMAKE_BINARY_DIR}/test
-        PRIVATE ${CMAKE_BINARY_DIR}/test/data-relay-grpc/grpc/proto
+        PRIVATE ${CMAKE_BINARY_DIR}/test/data_relay_grpc/grpc/proto
         )
 
 target_link_libraries(${test_target}
+        PRIVATE data-relay-grpc
         PRIVATE data-relay-grpc-impl
         PUBLIC gtest
         PRIVATE limestone
@@ -70,9 +72,9 @@ function (add_test_executable source_file)
 endfunction (add_test_executable)
 
 file(GLOB SRCS
-        "data-relay-grpc/blob_relay/*.cpp"
-        "data-relay-grpc/grpc/*.cpp"
-        "data-relay-grpc/grpc/service/*.cpp"
+        "data_relay_grpc/blob_relay/*.cpp"
+        "data_relay_grpc/grpc/*.cpp"
+        "data_relay_grpc/grpc/service/*.cpp"
         )
 
 foreach(file ${SRCS})

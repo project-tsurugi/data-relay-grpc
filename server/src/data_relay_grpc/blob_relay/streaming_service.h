@@ -3,19 +3,19 @@
 
 #include <string_view>
 
-#include "blob_relay_streaming.grpc.pb.h"
-#include "blob_relay_streaming.pb.h"
+#include "data_relay_grpc/proto/blob_relay/blob_relay_streaming.grpc.pb.h"
+#include "data_relay_grpc/proto/blob_relay/blob_relay_streaming.pb.h"
 #include "session_manager.h"
    
 namespace data_relay_grpc::blob_relay {
 
-using data_relay_grpc::blob_relay::proto::BlobRelayStreaming;
-using data_relay_grpc::blob_relay::proto::PutStreamingRequest;
-using data_relay_grpc::blob_relay::proto::PutStreamingRequest_Metadata;
-using data_relay_grpc::blob_relay::proto::PutStreamingResponse;
-using data_relay_grpc::blob_relay::proto::GetStreamingRequest;
-using data_relay_grpc::blob_relay::proto::GetStreamingResponse;
-using data_relay_grpc::blob_relay::proto::GetStreamingResponse_Metadata;
+using data_relay_grpc::proto::blob_relay::blob_relay_streaming::BlobRelayStreaming;
+using data_relay_grpc::proto::blob_relay::blob_relay_streaming::PutStreamingRequest;
+using data_relay_grpc::proto::blob_relay::blob_relay_streaming::PutStreamingRequest_Metadata;
+using data_relay_grpc::proto::blob_relay::blob_relay_streaming::PutStreamingResponse;
+using data_relay_grpc::proto::blob_relay::blob_relay_streaming::GetStreamingRequest;
+using data_relay_grpc::proto::blob_relay::blob_relay_streaming::GetStreamingResponse;
+using data_relay_grpc::proto::blob_relay::blob_relay_streaming::GetStreamingResponse_Metadata;
 
 class streaming_service final : public BlobRelayStreaming::Service {
 public:
