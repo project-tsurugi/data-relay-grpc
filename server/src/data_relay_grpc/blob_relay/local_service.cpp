@@ -1,7 +1,7 @@
 #include <fstream>
 
 #include "session_manager.h"
-#include "data-relay-grpc/blob_relay/local_service.h"
+#include "data_relay_grpc/blob_relay/local_service.h"
 #include "utils.h"
 
 namespace data_relay_grpc::blob_relay {

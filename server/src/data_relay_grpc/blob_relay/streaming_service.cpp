@@ -5,8 +5,8 @@
 #include "streaming_service.h"
 
 #include <glog/logging.h>
-#include "data-relay-grpc/logging_helper.h"
-#include "data-relay-grpc/logging.h"
+#include "data_relay_grpc/logging_helper.h"
+#include "data_relay_grpc/logging.h"
 
 #include "utils.h"
 

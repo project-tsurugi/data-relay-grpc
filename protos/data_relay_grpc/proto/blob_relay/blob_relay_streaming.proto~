@@ -1,7 +1,7 @@
 syntax = "proto3";
-package data_relay_grpc.blob_relay.proto;
+package data_relay_grpc.proto.blob_relay;
 
-import "blob_reference.proto";
+import "data_relay_grpc/proto/blob_relay/blob_reference.proto";
 
 // request message to download BLOB data by gRPC streaming.
 message GetStreamingRequest {

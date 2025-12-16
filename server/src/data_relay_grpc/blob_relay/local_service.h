@@ -1,17 +1,17 @@
 #pragma once
 #include <grpcpp/grpcpp.h>
 
-#include "blob_relay_local.grpc.pb.h"
-#include "blob_relay_local.pb.h"
+#include "data_relay_grpc/proto/blob_relay/blob_relay_local.grpc.pb.h"
+#include "data_relay_grpc/proto/blob_relay/blob_relay_local.pb.h"
 #include "session_manager.h"
 
 namespace data_relay_grpc::blob_relay {
 
-using data_relay_grpc::blob_relay::proto::BlobRelayLocal;
-using data_relay_grpc::blob_relay::proto::PutLocalRequest;
-using data_relay_grpc::blob_relay::proto::PutLocalResponse;
-using data_relay_grpc::blob_relay::proto::GetLocalRequest;
-using data_relay_grpc::blob_relay::proto::GetLocalResponse;
+using data_relay_grpc::proto::blob_relay::blob_relay_local::BlobRelayLocal;
+using data_relay_grpc::proto::blob_relay::blob_relay_local::PutLocalRequest;
+using data_relay_grpc::proto::blob_relay::blob_relay_local::PutLocalResponse;
+using data_relay_grpc::proto::blob_relay::blob_relay_local::GetLocalRequest;
+using data_relay_grpc::proto::blob_relay::blob_relay_local::GetLocalResponse;
 
 class local_service final : public BlobRelayLocal::Service {
   public:

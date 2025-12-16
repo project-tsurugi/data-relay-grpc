@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package data_relay_grpc.blob_relay.proto;
+package data_relay_grpc.proto.blob_relay.blob_relay_local;
 
-import "blob_reference.proto";
+import "data_relay_grpc/proto/blob_relay/blob_reference.proto";
 
 // represents BLOB file on the file system.
 message BlobFile {
@@ -27,7 +27,7 @@ message GetLocalRequest {
     }
 
     // the reference to the BLOB to download.
-    BlobReference blob = 4;
+    blob_reference.BlobReference blob = 4;
 }
 
 // response message to download BLOB data over the file system.
@@ -54,7 +54,7 @@ message PutLocalRequest {
 message PutLocalResponse {
 
     // the reference to the uploaded BLOB.
-    BlobReference blob = 1;
+    blob_reference.BlobReference blob = 1;
 }
 
 // Transfer BLOB data over the file system.

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package data_relay_grpc.blob_relay.proto;
+package data_relay_grpc.proto.blob_relay;
 
 message BlobReference {
 
