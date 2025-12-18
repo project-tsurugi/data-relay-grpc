@@ -48,7 +48,7 @@ add_dependencies(${test_target}
 
 target_include_directories(${test_target}
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-        PRIVATE ${CMAKE_BINARY_DIR}/src/protos
+        PRIVATE ${CMAKE_BINARY_DIR}/src
         PRIVATE ${CMAKE_BINARY_DIR}/test
         PRIVATE ${CMAKE_BINARY_DIR}/test/data_relay_grpc/grpc/proto
         )
