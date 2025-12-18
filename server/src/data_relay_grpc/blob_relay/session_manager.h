@@ -22,7 +22,7 @@
 #include <atomic>
 #include <mutex>
 
-#include <data-relay-grpc/blob_relay/service.h>
+#include <data_relay_grpc/blob_relay/service.h>
 #include "session_store.h"
 #include "session_impl.h"
 

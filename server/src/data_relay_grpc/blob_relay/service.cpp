@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <data-relay-grpc/blob_relay/service.h>
+#include <data_relay_grpc/blob_relay/service.h>
 
 #include "session_manager.h"
 #include "streaming_service.h"

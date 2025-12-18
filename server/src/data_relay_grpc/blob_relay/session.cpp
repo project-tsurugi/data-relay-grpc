@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <data-relay-grpc/blob_relay/session.h>
+#include <data_relay_grpc/blob_relay/session.h>
 
 #include "session_impl.h"
 
