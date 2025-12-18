@@ -9,7 +9,7 @@
 #include "test_root.h"
 #include "data_relay_grpc/grpc/grpc_server_test_base.h"
 
-#include <data-relay-grpc/blob_relay/service.h>
+#include <data_relay_grpc/blob_relay/service.h>
 #include "data_relay_grpc/blob_relay/streaming_service.h"
 
 namespace data_relay_grpc::blob_relay {

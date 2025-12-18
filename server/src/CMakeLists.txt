@@ -134,5 +134,5 @@ target_link_libraries(data-relay-grpc-impl
 
 # tg-grpc-backupd: gRPC remote backup service
 file(GLOB TG_GRPC_BACKUPD_SOURCES
-        "data-relay-grpc/blob_relay/server_main.cpp"
+        "data_relay_grpc/blob_relay/server_main.cpp"
 )

@@ -23,7 +23,7 @@
 #include <atomic>
 #include <mutex>
 
-#include <data-relay-grpc/blob_relay/session.h>
+#include <data_relay_grpc/blob_relay/session.h>
 #include "session_manager.h"
 
 namespace data_relay_grpc::blob_relay {

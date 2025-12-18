@@ -17,7 +17,7 @@
 
 #include <string>
 
-#include <data-relay-grpc/blob_relay/api_version.h>
+#include <data_relay_grpc/blob_relay/api_version.h>
 
 namespace data_relay_grpc::blob_relay {
 
