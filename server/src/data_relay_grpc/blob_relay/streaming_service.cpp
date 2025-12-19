@@ -73,7 +73,7 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
         }
 
         // should be done after confirming the blob's existence
-        if (session_impl.compute_tag(blob_id) != blob_tag) {
+        if (session_impl.get_tag(blob_id) != blob_tag) {
             if (!session_manager_.dev_accept_mock_tag() || blob_tag != blob_session_manager::MOCK_TAG) {
                 VLOG_LP(log_debug) << "finishes with PERMISSION_DENIED";
                 return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the given tag does not match the desiring value");
@@ -179,9 +179,7 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
         auto* blob = response->mutable_blob();
         blob->set_storage_id(SESSION_STORAGE_ID);
         blob->set_object_id(blob_id);
-        if (!session_manager_.dev_accept_mock_tag()) {
-            blob->set_tag(session_impl.compute_tag(blob_id));
-        }
+        blob->set_tag(session_impl.compute_tag(blob_id));
         VLOG_LP(log_debug) << "finishes normally";
         return ::grpc::Status(::grpc::StatusCode::OK, "");
     } catch (std::out_of_range &ex) {

@@ -93,11 +93,18 @@ public:
     }
 
     /**
-      * @brief computes a tag value for the given BLOB ID.
+      * @brief computes a tag value for the given BLOB ID used in Put operation.
       * @param blob_id the BLOB ID to compute the tag for.
       * @return the computed tag value.
       */
     [[nodiscard]] blob_session::blob_tag_type compute_tag(blob_session::blob_id_type blob_id) const;
+
+    /**
+      * @brief generate a tag value for the given BLOB ID using api.get_tag.
+      * @param blob_id the BLOB ID to compute the tag for.
+      * @return the computed tag value.
+      */
+    [[nodiscard]] blob_session::blob_tag_type get_tag(blob_session::blob_id_type blob_id) const;
 
 // internal use
     std::pair<blob_id_type, std::filesystem::path> create_blob_file(const std::string prefix = "upload");

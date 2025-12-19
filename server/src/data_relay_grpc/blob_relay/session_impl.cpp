@@ -49,4 +49,11 @@ blob_session::blob_tag_type blob_session_impl::compute_tag(blob_session::blob_id
     return manager_.get_tag(blob_id, session_id_);
 }
 
+blob_session::blob_tag_type blob_session_impl::get_tag(blob_session::blob_id_type blob_id) const {
+    if (transaction_id_opt_) {
+        return manager_.get_tag(blob_id, transaction_id_opt_.value());
+    }
+    return manager_.get_tag(blob_id, session_id_);
+}
+
 } // namespace
