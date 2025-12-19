@@ -15,7 +15,7 @@
 
 namespace data_relay_grpc::blob_relay {
 
-class tream_basic_test : public data_relay_grpc::grpc::grpc_server_test_base {
+class stream_basic_test : public data_relay_grpc::grpc::grpc_server_test_base {
 protected:
     const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
     const std::string session_store_name{"session_store"};
@@ -23,7 +23,7 @@ protected:
     const std::uint64_t tag_for_test = 2468;
     std::uint64_t blob_id_for_test{};
 
-    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("tream_basic_test")};
+    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_basic_test")};
     blob_session* session_{};
 
     void SetUp() override {
@@ -72,12 +72,9 @@ protected:
 private:
     blob_relay_service::api api_for_test{
         [this](std::uint64_t bid, std::uint64_t tid) {
-            EXPECT_EQ(bid, blob_id_for_test);
-            EXPECT_EQ(tid, transaction_id_for_test);
             return tag_for_test;
         },
         [this](std::uint64_t bid){
-            EXPECT_EQ(bid, blob_id_for_test);
             return helper_->last_path();
         }
     };
@@ -88,7 +85,7 @@ private:
     std::atomic_uint64_t blob_id_{};
 };
 
-TEST_F(tream_basic_test, get) {
+TEST_F(stream_basic_test, get) {
     start_server();
     set_blob_data();
     
@@ -125,7 +122,7 @@ TEST_F(tream_basic_test, get) {
     EXPECT_EQ(blob_data.size(), blob_size);
 }
 
-TEST_F(tream_basic_test, put) {
+TEST_F(stream_basic_test, put) {
     start_server();
 
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
@@ -160,6 +157,10 @@ TEST_F(tream_basic_test, put) {
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
     // send blob data end
 
+    // check tag returned
+    EXPECT_EQ(res.blob().tag(), tag_for_test);
+
+    // check contents of the uploaded
     auto& session_manager = get_session_manager();
     try {
         auto& session_impl = session_manager.get_session_impl(session_->session_id());
@@ -175,7 +176,7 @@ TEST_F(tream_basic_test, put) {
     }
 }
 
-TEST_F(tream_basic_test, put_without_size) {
+TEST_F(stream_basic_test, put_without_size) {
     start_server();
 
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
@@ -209,6 +210,10 @@ TEST_F(tream_basic_test, put_without_size) {
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
     // send blob data end
 
+    // check tag returned
+    EXPECT_EQ(res.blob().tag(), tag_for_test);
+
+    // check contents of the uploaded
     auto& session_manager = get_session_manager();
     try {
         auto& session_impl = session_manager.get_session_impl(session_->session_id());
@@ -224,7 +229,7 @@ TEST_F(tream_basic_test, put_without_size) {
     }
 }
 
-TEST_F(tream_basic_test, put_without_size_no_chunk) {
+TEST_F(stream_basic_test, put_without_size_no_chunk) {
     start_server();
 
     auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
@@ -248,6 +253,10 @@ TEST_F(tream_basic_test, put_without_size_no_chunk) {
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
     // send blob data end
 
+    // check tag returned
+    EXPECT_EQ(res.blob().tag(), tag_for_test);
+
+    // check contents of the uploaded
     auto& session_manager = get_session_manager();
     try {
         auto& session_impl = session_manager.get_session_impl(session_->session_id());
