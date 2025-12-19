@@ -179,7 +179,9 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
         auto* blob = response->mutable_blob();
         blob->set_storage_id(SESSION_STORAGE_ID);
         blob->set_object_id(blob_id);
-        blob->set_tag(session_impl.compute_tag(blob_id));
+        if (!session_manager_.dev_accept_mock_tag()) {
+            blob->set_tag(session_impl.compute_tag(blob_id));
+        }
         VLOG_LP(log_debug) << "finishes normally";
         return ::grpc::Status(::grpc::StatusCode::OK, "");
     } catch (std::out_of_range &ex) {
