@@ -32,3 +32,21 @@ runs:
         cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DBUILD_TESTS=OFF -DBUILD_DOCUMENTS=OFF -DBUILD_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/.local ${{ inputs.cmake_build_option }} ..
         cmake --build . --target install --clean-first
       shell: bash
+
+    - name: Checkout_Tateyama
+      uses: actions/checkout@v4
+      if: ${{ inputs.checkout == 'true' }}
+      with:
+        repository: project-tsurugi/tateyama
+        path: ${{ inputs.path }}/tateyama
+        ref: master
+
+    - name: Install_Tateyama_API
+      run: |
+        cd ${{ inputs.path }}/tateyama
+        rm -fr build
+        mkdir build
+        cd build
+        cmake -G Ninja -DINSTALL_API_ONLY=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DBUILD_TESTS=OFF -DBUILD_DOCUMENTS=OFF -DBUILD_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/.local ${{ inputs.cmake_build_option }} ..
+        cmake --build . --target install --clean-first
+      shell: bash

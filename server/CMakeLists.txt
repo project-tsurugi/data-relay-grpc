@@ -52,6 +52,7 @@ option(RECOVERY_SORTER_PUT_ONLY "using put-only method at recovery process (fast
 
 find_package(limestone REQUIRED)
 
+find_package(tateyama-shirakami REQUIRED)
 find_package(Doxygen)
 find_package(glog REQUIRED)
 find_package(gflags REQUIRED)

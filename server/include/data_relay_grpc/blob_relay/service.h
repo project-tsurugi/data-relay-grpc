@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2025 Project Tsurugi.
+ * Copyright 2025-2026 Project Tsurugi.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@
 
 #include <grpcpp/grpcpp.h>
 
+#include <tateyama/framework/resource.h>
+
 #include <data_relay_grpc/blob_relay/session.h>
 #include <data_relay_grpc/blob_relay/service_configuration.h>
 
@@ -34,7 +36,7 @@ class local_service;
 /**
  * @brief blob relay service
  */
-class blob_relay_service {
+class blob_relay_service : public tateyama::framework::resource {
 public:
     class api {
     public:
@@ -55,35 +57,19 @@ public:
         std::function<std::filesystem::path(blob_session::blob_id_type)> get_path_;
     };
 
-    blob_relay_service(api const& f, service_configuration const& p);
-
     /**
       * @brief Create a new session for BLOB operations.
       * @param transaction_id The ID of the transaction that owns the session,
       *    or empty if the session is not associated with any transaction
       * @return the created session object
       */
-    [[nodiscard]] blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt);
+    [[nodiscard]] virtual blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt) = 0;
 
     /**
       * @brief Add the blob relay service to gRPC server.
       * @param builder The builder of the gRPC server
       */
-    void add_blob_relay_service(::grpc::ServerBuilder& builder);
-
-    // for tests only
-    blob_session_manager& get_session_manager();
-
-private:
-    api api_;
-    service_configuration configuration_;
-
-    using unique_ptr_session_manager = std::unique_ptr<blob_session_manager, void(*)(blob_session_manager*)>;
-    using unique_ptr_streaming_service = std::unique_ptr<streaming_service, void(*)(streaming_service*)>;
-    using unique_ptr_local_service = std::unique_ptr<local_service, void(*)(local_service*)>;
-    unique_ptr_session_manager session_manager_;
-    unique_ptr_streaming_service streaming_service_;
-    unique_ptr_local_service local_service_;
+    virtual void add_blob_relay_service(::grpc::ServerBuilder& builder) = 0;
 };
 
 } // namespace

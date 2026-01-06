@@ -9,7 +9,7 @@
 #include "test_root.h"
 #include "data_relay_grpc/grpc/grpc_server_test_base.h"
 
-#include <data_relay_grpc/blob_relay/service.h>
+#include "data_relay_grpc/blob_relay/service_impl.h"
 #include <data_relay_grpc/blob_relay/api_version.h>
 #include "data_relay_grpc/blob_relay/streaming_service.h"
 
@@ -30,7 +30,7 @@ protected:
         data_relay_grpc::grpc::grpc_server_test_base::SetUp();
         helper_->set_up();
         std::filesystem::create_directory(helper_->path(session_store_name));
-        service_ = std::make_unique<blob_relay_service>(
+        service_ = std::make_unique<blob_relay_service_impl>(
             api_for_test,
             service_configuration{
                 helper_->path(session_store_name),  // session_store
@@ -82,7 +82,7 @@ private:
         }
     };
 
-    std::unique_ptr<blob_relay_service> service_{};
+    std::unique_ptr<blob_relay_service_impl> service_{};
     std::uint64_t session_id_{};
     std::uint64_t transaction_id_{};
     std::atomic_uint64_t blob_id_{};

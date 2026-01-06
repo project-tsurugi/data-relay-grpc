@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2025 Project Tsurugi.
+ * Copyright 2025-2026 Project Tsurugi.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <data_relay_grpc/blob_relay/service.h>
+#include "service_impl.h"
 
 #include "session_manager.h"
 #include "streaming_service.h"
@@ -31,7 +31,7 @@ static std::unique_ptr<smoketest_support_service> unqp_smoketest_support_service
 }
 #endif
 
-blob_relay_service::blob_relay_service(api const& f, service_configuration const& c)
+blob_relay_service_impl::blob_relay_service_impl(api const& f, service_configuration const& c)
     : api_(f),
       configuration_(c),
       session_manager_(unique_ptr_session_manager(new blob_session_manager(api_, configuration_.session_store(), c.session_quota_size(), c.dev_accept_mock_tag()), [](blob_session_manager* e){ delete e; })),
@@ -42,11 +42,11 @@ blob_relay_service::blob_relay_service(api const& f, service_configuration const
 #endif
 }
 
-blob_session& blob_relay_service::create_session(std::optional<blob_session::transaction_id_type> transaction_id_opt) {
+blob_session& blob_relay_service_impl::create_session(std::optional<blob_session::transaction_id_type> transaction_id_opt) {
     return session_manager_->create_session(transaction_id_opt);
 }
 
-void blob_relay_service::add_blob_relay_service(grpc::ServerBuilder& builder) {
+void blob_relay_service_impl::add_blob_relay_service(grpc::ServerBuilder& builder) {
     builder.RegisterService(streaming_service_.get());
     if (configuration_.local_enabled()) {
         builder.RegisterService(local_service_.get());
@@ -56,7 +56,28 @@ void blob_relay_service::add_blob_relay_service(grpc::ServerBuilder& builder) {
 #endif
 }
 
-blob_session_manager& blob_relay_service::get_session_manager() {
+bool blob_relay_service_impl::setup(tateyama::framework::environment&) {
+    return true;
+}
+
+bool blob_relay_service_impl::start(tateyama::framework::environment&) {
+    return true;
+}
+
+bool blob_relay_service_impl::shutdown(tateyama::framework::environment&) {
+    return true;
+}
+
+tateyama::framework::component::id_type blob_relay_service_impl::id() const noexcept {
+    return tag;
+}
+
+std::string_view blob_relay_service_impl::label() const noexcept {
+    return component_label;
+}
+
+// for tests only
+blob_session_manager& blob_relay_service_impl::get_session_manager() {
     return *session_manager_;
 }
 

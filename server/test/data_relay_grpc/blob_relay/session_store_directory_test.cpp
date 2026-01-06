@@ -7,7 +7,7 @@
 #include "test_root.h"
 #include "data_relay_grpc/grpc/grpc_server_test_base.h"
 
-#include <data_relay_grpc/blob_relay/service.h>
+#include "data_relay_grpc/blob_relay/service_impl.h"
 #include "data_relay_grpc/blob_relay/streaming_service.h"
 
 namespace data_relay_grpc::blob_relay {
@@ -37,7 +37,7 @@ protected:
         }
     };
 
-    std::unique_ptr<blob_relay_service> service_{};
+    std::unique_ptr<blob_relay_service_impl> service_{};
 };
 
 TEST_F(session_store_directory_test, basic) {
@@ -50,7 +50,7 @@ TEST_F(session_store_directory_test, basic) {
         false             // dev_accept_mock_tag
     };
 
-    EXPECT_NO_THROW( { service_ = std::make_unique<blob_relay_service>(api_for_test, conf_for_test); } );
+    EXPECT_NO_THROW( { service_ = std::make_unique<blob_relay_service_impl>(api_for_test, conf_for_test); } );
 }
 
 TEST_F(session_store_directory_test, symbolic_link) {
@@ -69,7 +69,7 @@ TEST_F(session_store_directory_test, symbolic_link) {
         false   // dev_accept_mock_tag
     };
 
-    EXPECT_NO_THROW( { service_ = std::make_unique<blob_relay_service>(api_for_test, conf_for_test); } );
+    EXPECT_NO_THROW( { service_ = std::make_unique<blob_relay_service_impl>(api_for_test, conf_for_test); } );
 }
 
 TEST_F(session_store_directory_test, not_exist) {
@@ -82,7 +82,7 @@ TEST_F(session_store_directory_test, not_exist) {
         false                 // dev_accept_mock_tag
     };
 
-    EXPECT_THROW( { service_ = std::make_unique<blob_relay_service>(api_for_test, conf_for_test); }, std::runtime_error );
+    EXPECT_THROW( { service_ = std::make_unique<blob_relay_service_impl>(api_for_test, conf_for_test); }, std::runtime_error );
 }
 
 TEST_F(session_store_directory_test, not_directory) {
@@ -100,7 +100,7 @@ TEST_F(session_store_directory_test, not_directory) {
         false   // dev_accept_mock_tag
     };
 
-    EXPECT_THROW( { service_ = std::make_unique<blob_relay_service>(api_for_test, conf_for_test); }, std::runtime_error );
+    EXPECT_THROW( { service_ = std::make_unique<blob_relay_service_impl>(api_for_test, conf_for_test); }, std::runtime_error );
 }
 
 } // namespace

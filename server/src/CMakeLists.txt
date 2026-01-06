@@ -75,6 +75,7 @@ target_include_directories(${package_name}
 
 target_link_libraries(${package_name}
         PUBLIC data-relay-grpc-api
+        PRIVATE tateyama-shirakami-api
         PRIVATE Boost::boost
         PRIVATE Boost::filesystem
         PRIVATE Boost::thread

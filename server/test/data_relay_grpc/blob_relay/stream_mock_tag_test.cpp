@@ -9,7 +9,7 @@
 #include "test_root.h"
 #include "data_relay_grpc/grpc/grpc_server_test_base.h"
 
-#include <data_relay_grpc/blob_relay/service.h>
+#include "data_relay_grpc/blob_relay/service_impl.h"
 #include "data_relay_grpc/blob_relay/streaming_service.h"
 
 namespace data_relay_grpc::blob_relay {
@@ -72,7 +72,7 @@ protected:
             return std::filesystem::path{};
         }
     };
-    std::unique_ptr<blob_relay_service> service_{};
+    std::unique_ptr<blob_relay_service_impl> service_{};
 
 private:
     std::uint64_t session_id_{};
@@ -81,7 +81,7 @@ private:
 };
 
 TEST_F(stream_mock_tag_test, get_ok) {
-    service_ = std::make_unique<blob_relay_service>(
+    service_ = std::make_unique<blob_relay_service_impl>(
         api_for_test,
         service_configuration {
             helper_->path(session_store_name),  // session_store
@@ -126,7 +126,7 @@ TEST_F(stream_mock_tag_test, get_ok) {
 }
 
 TEST_F(stream_mock_tag_test, get_with_mocktag_ng) {
-    service_ = std::make_unique<blob_relay_service>(
+    service_ = std::make_unique<blob_relay_service_impl>(
         api_for_test,
         service_configuration {
             helper_->path(session_store_name),  // session_store
@@ -160,7 +160,7 @@ TEST_F(stream_mock_tag_test, get_with_mocktag_ng) {
 }
 
 TEST_F(stream_mock_tag_test, get_with_mocktag_ok) {
-    service_ = std::make_unique<blob_relay_service>(
+    service_ = std::make_unique<blob_relay_service_impl>(
         api_for_test,
         service_configuration {
             helper_->path(session_store_name),  // session_store

@@ -56,6 +56,7 @@ target_include_directories(${test_target}
 target_link_libraries(${test_target}
         PRIVATE data-relay-grpc
         PRIVATE data-relay-grpc-impl
+        PRIVATE tateyama-shirakami-api
         PUBLIC gtest
         PRIVATE limestone
         )
