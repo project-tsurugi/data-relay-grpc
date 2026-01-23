@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 Project Tsurugi.
+ * Copyright 2024-2026 Project Tsurugi.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <map>
 #include <optional>
@@ -67,6 +68,20 @@ private:
 
     friend class blob_session_impl;
     blob_session::blob_id_type get_new_blob_id();
+
+    // HMAC secret key for BLOB reference tag generation (16 bytes)
+    std::array<std::uint8_t, 16> hmac_secret_key_{};
+
+    /**
+     * @brief generates HMAC secret key for BLOB reference tag generation.
+     */
+    void generate_hmac_secret_key();
+
+    /**
+     * @brief gets the HMAC secret key for BLOB reference tag generation.
+     * @return reference to the HMAC secret key.
+     */
+    [[nodiscard]] const std::array<std::uint8_t, 16>& get_hmac_secret_key() const noexcept;
 };
 
 } // namespace

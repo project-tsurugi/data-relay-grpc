@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2025 Project Tsurugi.
+ * Copyright 2025-2026 Project Tsurugi.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#include <array>
+
+#include <openssl/hmac.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
 
 #include "session_manager.h"
 #include "session_impl.h"
@@ -46,7 +52,49 @@ std::pair<blob_session::blob_id_type, std::filesystem::path> blob_session_impl::
 }
 
 blob_session::blob_tag_type blob_session_impl::compute_tag(blob_session::blob_id_type blob_id) const {
-    return manager_.get_tag(blob_id, session_id_);
+    std::array<unsigned char, sizeof(blob_session::blob_id_type) + sizeof(std::uint64_t)> input_bytes{};
+    std::memcpy(input_bytes.data(), &blob_id, sizeof(blob_session::blob_id_type));
+    std::memcpy(input_bytes.data() + sizeof(blob_session::blob_id_type), &session_id_, sizeof(std::uint64_t));
+
+    auto const& secret_key = manager_.get_hmac_secret_key();
+
+    ERR_clear_error();
+
+    std::array<unsigned char, EVP_MAX_MD_SIZE> md{};
+    unsigned int md_len = 0;
+
+    unsigned char* result = HMAC(EVP_sha256(),
+            secret_key.data(),
+            static_cast<int>(secret_key.size()),
+            input_bytes.data(),
+            input_bytes.size(),
+            md.data(),
+            &md_len);
+
+    if (! result) {
+        std::string msg = "Failed to calculate reference tag: ";
+        // NOLINTNEXTLINE(google-runtime-int) : OpenSSL API requires unsigned long
+        unsigned long openssl_err = 0;
+        bool has_error = false;
+        while ((openssl_err = ERR_get_error()) != 0) {
+            has_error = true;
+            std::array<char, 256> err_msg_buf{};
+            ERR_error_string_n(openssl_err,
+                    err_msg_buf.data(),
+                    err_msg_buf.size());
+            msg += "[" + std::to_string(openssl_err) + ": "
+                    + err_msg_buf.data() + "] ";
+        }
+        if (! has_error) {
+            msg += "No OpenSSL error code available.";
+        }
+        throw std::runtime_error(msg);
+    }
+
+    blob_session::blob_tag_type tag = 0;
+    std::memcpy(&tag, md.data(), sizeof(blob_session::blob_tag_type));
+
+    return tag;
 }
 
 blob_session::blob_tag_type blob_session_impl::get_tag(blob_session::blob_id_type blob_id) const {
