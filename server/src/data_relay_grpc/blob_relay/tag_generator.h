@@ -30,8 +30,12 @@ template <typename T1, typename T2, typename T3>
 class tag_generator {
   public:
     tag_generator() {
+        // The generated key is 128 bits (16 bytes). Although HMAC-SHA256 can use
+        // longer keys (and RFC 2104 recommends keys at least as long as the hash
+        // output), we keep the 16-byte key length for compatibility with existing
+        // systems that assume this size.
         if (RAND_bytes(hmac_secret_key_.data(), static_cast<int>(hmac_secret_key_.size())) != 1) {
-            throw std::runtime_error("Failed to generate random bytes for BLOB access control secret key");
+            throw std::runtime_error("Failed to generate random bytes for HMAC secret key for BLOB reference tag generation");
         }
     }
     T3 generate_reference_tag(
@@ -70,7 +74,16 @@ class tag_generator {
     }
 
   private:
-    // HMAC secret key for BLOB reference tag generation (16 bytes)
+    // HMAC secret key for BLOB reference tag generation (128-bit, 16 bytes).
+    // Note:
+    //   - HMAC-SHA256 accepts keys of any length, but RFC 2104 recommends
+    //     using a key at least as long as the hash output (256 bits).
+    //   - This implementation intentionally uses a 128-bit random key because
+    //     the key size is constrained by existing deployments (e.g. stored
+    //     configuration / wire format) and changing it would invalidate
+    //     previously generated BLOB reference tags.
+    //   - A 128-bit uniformly random secret key still provides strong security
+    //     for this use case, and the choice is documented here for clarity.
     std::array<std::uint8_t, 16> hmac_secret_key_{};
 
     std::string hmac_error_message() {

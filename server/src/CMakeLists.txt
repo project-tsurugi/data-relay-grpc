@@ -85,6 +85,7 @@ target_link_libraries(${package_name}
         PRIVATE grpc
         PRIVATE protobuf
         PRIVATE limestone
+        PRIVATE OpenSSL::Crypto
 )
 
 set_compile_options(${package_name})

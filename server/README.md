@@ -16,7 +16,7 @@ git submodule update --init --recursive
 ```dockerfile
 FROM ubuntu:22.04
 
-RUN apt update -y && apt install -y git build-essential cmake ninja-build libgoogle-glog-dev libgflags-dev protobuf-compiler protobuf-c-compiler libprotobuf-dev protobuf-compiler-grpc libgrpc++-dev pkg-config
+RUN apt update -y && apt install -y git build-essential cmake ninja-build libgoogle-glog-dev libgflags-dev protobuf-compiler protobuf-c-compiler libprotobuf-dev protobuf-compiler-grpc libgrpc++-dev pkg-config openssl
 ```
 optional packages:
 
