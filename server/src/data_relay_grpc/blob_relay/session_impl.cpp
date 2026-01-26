@@ -46,7 +46,7 @@ std::pair<blob_session::blob_id_type, std::filesystem::path> blob_session_impl::
 }
 
 blob_session::blob_tag_type blob_session_impl::compute_tag(blob_session::blob_id_type blob_id) const {
-    return manager_.get_tag(blob_id, session_id_);
+    return manager_.generate_reference_tag(blob_id, session_id_);
 }
 
 blob_session::blob_tag_type blob_session_impl::get_tag(blob_session::blob_id_type blob_id) const {

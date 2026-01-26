@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 Project Tsurugi.
+ * Copyright 2024-2026 Project Tsurugi.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 #include <data_relay_grpc/blob_relay/service.h>
 #include "session_store.h"
 #include "session_impl.h"
+#include "tag_generator.h"
 
 namespace data_relay_grpc::blob_relay {
 
@@ -54,10 +55,13 @@ public:
     }
     constexpr static blob_session::blob_tag_type MOCK_TAG = 0xffffffffffffffffLL;
 
+    blob_session::blob_tag_type generate_reference_tag(blob_session::blob_id_type, blob_session::session_id_type);
+
 private:
     blob_relay_service::api api_;
     blob_session_store session_store_;
     bool dev_accept_mock_tag_;
+    tag_generator<blob_session::blob_id_type, blob_session::session_id_type, blob_session::blob_tag_type> tag_generator_{};
     std::atomic<blob_session::session_id_type> session_id_{};
     std::atomic<blob_session::blob_id_type> blob_id_{};
 

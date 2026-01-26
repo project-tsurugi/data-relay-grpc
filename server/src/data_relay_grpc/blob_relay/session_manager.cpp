@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2025 Project Tsurugi.
+ * Copyright 2025-2026 Project Tsurugi.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,6 +78,10 @@ blob_session::blob_path_type blob_session_manager::get_path(blob_session::blob_i
 
 blob_session::blob_id_type blob_session_manager::get_new_blob_id() {
     return blob_id_.fetch_add(1) + 1;
+}
+
+blob_session::blob_tag_type blob_session_manager::generate_reference_tag(blob_session::blob_id_type blob_id, blob_session::session_id_type session_id) {
+    return tag_generator_.generate_reference_tag(blob_id, session_id);
 }
 
 } // namespace

@@ -20,7 +20,7 @@ protected:
     const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
     const std::string session_store_name{"session_store"};
     const std::uint64_t transaction_id_for_test = 12345;
-    const std::uint64_t tag_for_test = 2468;
+    const std::uint64_t tag_for_test = 2468;  // for get tests
     std::uint64_t blob_id_for_test{};
 
     std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_basic_test")};
@@ -158,7 +158,7 @@ TEST_F(stream_basic_test, put) {
     // send blob data end
 
     // check tag returned
-    EXPECT_EQ(res.blob().tag(), tag_for_test);
+    EXPECT_EQ(res.blob().tag(), session_->compute_tag(res.blob().object_id()));
 
     // check contents of the uploaded
     auto& session_manager = get_session_manager();
@@ -211,7 +211,7 @@ TEST_F(stream_basic_test, put_without_size) {
     // send blob data end
 
     // check tag returned
-    EXPECT_EQ(res.blob().tag(), tag_for_test);
+    EXPECT_EQ(res.blob().tag(), session_->compute_tag(res.blob().object_id()));
 
     // check contents of the uploaded
     auto& session_manager = get_session_manager();
@@ -254,7 +254,7 @@ TEST_F(stream_basic_test, put_without_size_no_chunk) {
     // send blob data end
 
     // check tag returned
-    EXPECT_EQ(res.blob().tag(), tag_for_test);
+    EXPECT_EQ(res.blob().tag(), session_->compute_tag(res.blob().object_id()));
 
     // check contents of the uploaded
     auto& session_manager = get_session_manager();

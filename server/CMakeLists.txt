@@ -60,6 +60,7 @@ find_package(Boost
         COMPONENTS filesystem thread system container
         REQUIRED
         )
+find_package(OpenSSL REQUIRED)
 
 # gRPC/protobuf
 find_package(Protobuf REQUIRED)
