@@ -15,7 +15,6 @@
  */
 #pragma once
 
-#include <array>
 #include <cstdint>
 #include <map>
 #include <optional>
@@ -26,6 +25,7 @@
 #include <data_relay_grpc/blob_relay/service.h>
 #include "session_store.h"
 #include "session_impl.h"
+#include "tag_generator.h"
 
 namespace data_relay_grpc::blob_relay {
 
@@ -55,10 +55,13 @@ public:
     }
     constexpr static blob_session::blob_tag_type MOCK_TAG = 0xffffffffffffffffLL;
 
+    blob_session::blob_tag_type generate_reference_tag(blob_session::blob_id_type, blob_session::session_id_type);
+
 private:
     blob_relay_service::api api_;
     blob_session_store session_store_;
     bool dev_accept_mock_tag_;
+    tag_generator<blob_session::blob_id_type, blob_session::session_id_type, blob_session::blob_tag_type> tag_generator_{};
     std::atomic<blob_session::session_id_type> session_id_{};
     std::atomic<blob_session::blob_id_type> blob_id_{};
 
@@ -68,20 +71,6 @@ private:
 
     friend class blob_session_impl;
     blob_session::blob_id_type get_new_blob_id();
-
-    // HMAC secret key for BLOB reference tag generation (16 bytes)
-    std::array<std::uint8_t, 16> hmac_secret_key_{};
-
-    /**
-     * @brief generates HMAC secret key for BLOB reference tag generation.
-     */
-    void generate_hmac_secret_key();
-
-    /**
-     * @brief gets the HMAC secret key for BLOB reference tag generation.
-     * @return reference to the HMAC secret key.
-     */
-    [[nodiscard]] const std::array<std::uint8_t, 16>& get_hmac_secret_key() const noexcept;
 };
 
 } // namespace

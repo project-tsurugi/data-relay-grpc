@@ -20,7 +20,7 @@ protected:
     const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
     const std::string session_store_name{"session_store"};
     const std::uint64_t transaction_id_for_test = 12345;
-    const std::uint64_t tag_for_test = 2468;  // for get()
+    const std::uint64_t tag_for_test = 2468;  // for get tests
     std::uint64_t blob_id_for_test{};
 
     std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_basic_test")};

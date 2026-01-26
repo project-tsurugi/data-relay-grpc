@@ -14,16 +14,12 @@
  * limitations under the License.
  */
 
-#include <openssl/rand.h>
-
 #include "session_manager.h"
 
 namespace data_relay_grpc::blob_relay {
 
 blob_session_manager::blob_session_manager(const blob_relay_service::api& api, const std::string& directory, std::size_t quota, bool dev_accept_mock_tag)
     : api_(api), session_store_(directory, quota), dev_accept_mock_tag_(dev_accept_mock_tag) {
-    // Generate HMAC secret key for BLOB reference tag generation
-    generate_hmac_secret_key();
 }
 
 blob_session& blob_session_manager::create_session(std::optional<blob_session::transaction_id_type> transaction_id_opt) {
@@ -84,15 +80,8 @@ blob_session::blob_id_type blob_session_manager::get_new_blob_id() {
     return blob_id_.fetch_add(1) + 1;
 }
 
-void blob_session_manager::generate_hmac_secret_key() {
-    // Generate 16 random bytes using OpenSSL RAND_bytes()
-    if (RAND_bytes(hmac_secret_key_.data(), static_cast<int>(hmac_secret_key_.size())) != 1) {
-        throw std::runtime_error("Failed to generate random bytes for BLOB access control secret key");
-    }
-}
-
-const std::array<std::uint8_t, 16>& blob_session_manager::get_hmac_secret_key() const noexcept {
-    return hmac_secret_key_;
+blob_session::blob_tag_type blob_session_manager::generate_reference_tag(blob_session::blob_id_type blob_id, blob_session::session_id_type session_id) {
+    return tag_generator_.generate_reference_tag(blob_id, session_id);
 }
 
 } // namespace
