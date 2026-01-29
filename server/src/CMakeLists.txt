@@ -30,7 +30,7 @@ protobuf_generate(TARGET generated_protos LANGUAGE grpc OUT_VAR GENERATED_GRPC_F
 add_custom_target(build_protos DEPENDS generated_protos)
 add_custom_command(
   TARGET build_protos
-  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/src/data_relay_grpc/proto/blob_relay
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/src/data_relay_grpc/proto/blob_relay ${CMAKE_BINARY_DIR}/protos/data_relay_grpc/proto/blob_relay
   COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/src/protos/data_relay_grpc/proto/blob_relay/*.pb.h" ${CMAKE_BINARY_DIR}/src/data_relay_grpc/proto/blob_relay
   COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/src/protos/data_relay_grpc/proto/blob_relay/*.pb.cc" ${CMAKE_BINARY_DIR}/protos/data_relay_grpc/proto/blob_relay
 )
