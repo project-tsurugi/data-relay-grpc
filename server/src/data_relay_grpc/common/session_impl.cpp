@@ -17,7 +17,7 @@
 #include "session_manager.h"
 #include "session_impl.h"
 
-namespace data_relay_grpc::blob_relay {
+namespace data_relay_grpc::common {
 
 blob_session::blob_id_type blob_session_impl::add(blob_session::blob_path_type path) {
     std::lock_guard<std::mutex> lock(mtx_);
@@ -54,6 +54,18 @@ blob_session::blob_tag_type blob_session_impl::get_tag(blob_session::blob_id_typ
         return manager_.get_tag(blob_id, transaction_id_opt_.value());
     }
     return manager_.get_tag(blob_id, session_id_);
+}
+
+void blob_session_impl::delete_blob_file(blob_id_type bid) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    if (auto itr = blobs_.find(bid); itr != blobs_.end()) {
+        session_store_.remove(itr->second.second);         // decrease session storage usage counter
+        if (std::filesystem::exists(itr->second.first)) {  // maybe blob file has been moved
+            std::filesystem::remove(itr->second.first);
+        }
+        blobs_.erase(itr);
+        return;
+    }
 }
 
 } // namespace

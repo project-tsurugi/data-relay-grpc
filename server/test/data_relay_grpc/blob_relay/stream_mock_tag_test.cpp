@@ -58,12 +58,12 @@ protected:
         blob_id_for_test = session_->add(path);
     }
 
-    blob_session_manager& get_session_manager() {
+    common::blob_session_manager& get_session_manager() {
         return  service_->get_session_manager();
     }
 
 protected:
-    blob_relay_service::api api_for_test{
+    common::api api_for_test{
         [this](std::uint64_t bid, std::uint64_t tid) {
             return tag_for_test;
         },
@@ -150,7 +150,7 @@ TEST_F(stream_mock_tag_test, get_with_mocktag_ng) {
     req.set_session_id(session_->session_id());
     auto* blob = req.mutable_blob();
     blob->set_object_id(blob_id_for_test);
-    blob->set_tag(blob_session_manager::MOCK_TAG);
+    blob->set_tag(common::blob_session_manager::MOCK_TAG);
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;
@@ -184,7 +184,7 @@ TEST_F(stream_mock_tag_test, get_with_mocktag_ok) {
     req.set_session_id(session_->session_id());
     auto* blob = req.mutable_blob();
     blob->set_object_id(blob_id_for_test);
-    blob->set_tag(blob_session_manager::MOCK_TAG);
+    blob->set_tag(common::blob_session_manager::MOCK_TAG);
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;

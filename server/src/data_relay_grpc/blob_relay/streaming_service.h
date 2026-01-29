@@ -5,7 +5,7 @@
 
 #include "data_relay_grpc/proto/blob_relay/blob_relay_streaming.grpc.pb.h"
 #include "data_relay_grpc/proto/blob_relay/blob_relay_streaming.pb.h"
-#include "session_manager.h"
+#include "data_relay_grpc/common/session_manager.h"
    
 namespace data_relay_grpc::blob_relay {
 
@@ -19,7 +19,7 @@ using data_relay_grpc::proto::blob_relay::blob_relay_streaming::GetStreamingResp
 
 class streaming_service final : public BlobRelayStreaming::Service {
 public:
-    streaming_service(blob_session_manager&, std::size_t);
+    streaming_service(common::blob_session_manager&, std::size_t);
     ~streaming_service() override = default;
 
     streaming_service(const streaming_service&) = delete;
@@ -36,7 +36,7 @@ public:
                        PutStreamingResponse* response) override;
 
 private:
-    blob_session_manager& session_manager_;
+    common::blob_session_manager& session_manager_;
     std::size_t chunk_size_;
     constexpr static std::uint64_t SESSION_STORAGE_ID = 0;
     constexpr static std::uint64_t LIMESTONE_BLOB_STORE = 1;

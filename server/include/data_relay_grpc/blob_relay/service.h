@@ -22,10 +22,13 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include <data_relay_grpc/blob_relay/session.h>
+#include <data_relay_grpc/common/session.h>
+#include <data_relay_grpc/common/api.h>
 #include <data_relay_grpc/blob_relay/service_configuration.h>
 
 namespace data_relay_grpc::blob_relay {
+
+using data_relay_grpc::common::blob_session;
 
 class blob_relay_service_impl;
 
@@ -34,24 +37,7 @@ class blob_relay_service_impl;
  */
 class blob_relay_service {
 public:
-    class api {
-    public:
-        api(const std::function<blob_session::blob_tag_type(blob_session::blob_id_type, blob_session::transaction_id_type)> get_tag,
-            const std::function<std::filesystem::path(blob_session::blob_id_type)> get_path)
-            : get_tag_(get_tag), get_path_(get_path) {}
-
-        api(api const&) = default;
-        api(api&&) = delete;
-        api& operator=(api const&) = default;
-        api& operator=(api&&) = delete;
-
-        const std::function<blob_session::blob_tag_type(blob_session::blob_id_type, blob_session::transaction_id_type)>& get_tag() {return get_tag_; }
-        const std::function<std::filesystem::path(blob_session::blob_id_type)>& get_path() { return get_path_; }
-
-    private:
-        std::function<blob_session::blob_tag_type(blob_session::blob_id_type, blob_session::transaction_id_type)> get_tag_;
-        std::function<std::filesystem::path(blob_session::blob_id_type)> get_path_;
-    };
+    using api = data_relay_grpc::common::api;
 
     /**
       * @brief Create a new session for BLOB operations.
@@ -68,10 +54,10 @@ public:
 
     /**
       * @brief Create object.
-      * @param funcs the api
+      * @param api the api for tag related calculations
       * @param conf the service_configuration
       */
-    blob_relay_service(api const& funcs, service_configuration const& conf);
+    blob_relay_service(blob_relay_service::api const& api, service_configuration const& conf);
 
 private:
     std::unique_ptr<blob_relay_service_impl, void(*)(blob_relay_service_impl*)> impl_;

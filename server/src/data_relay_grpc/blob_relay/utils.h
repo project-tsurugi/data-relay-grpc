@@ -33,4 +33,4 @@ static std::string api_version_error_message(std::uint64_t api_version) {
     return "the requested API version "s + std::to_string(api_version) + " is not compatible with required version (less than or equal to "s + std::to_string(BLOB_RELAY_API_VERSION) + ")"s;
 }
 
-} // namespace data_relay_grpc::blob_relay
+} // namespace data_relay_grpc::common

@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-#include <data_relay_grpc/blob_relay/session.h>
+#include <list>
+
+#include <data_relay_grpc/common/session.h>
 
 #include "session_impl.h"
 
-namespace data_relay_grpc::blob_relay {
+namespace data_relay_grpc::common {
 
 blob_session::blob_session(std::unique_ptr<blob_session_impl> impl) : impl_(std::move(impl)) {
 }

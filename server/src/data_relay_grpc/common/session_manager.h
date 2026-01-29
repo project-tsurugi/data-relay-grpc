@@ -22,19 +22,19 @@
 #include <atomic>
 #include <mutex>
 
-#include <data_relay_grpc/blob_relay/service.h>
+#include <data_relay_grpc/common/api.h>
 #include "session_store.h"
 #include "session_impl.h"
 #include "tag_generator.h"
 
-namespace data_relay_grpc::blob_relay {
+namespace data_relay_grpc::common {
 
 /**
- * @brief blob session
+ * @brief a class of manager for blob session
  */
 class blob_session_manager {
 public:
-    blob_session_manager(const blob_relay_service::api&, const std::string&, std::size_t, bool);
+    blob_session_manager(const api&, const std::string&, std::size_t, bool);
 
     blob_session& create_session(std::optional<blob_session::transaction_id_type>);
 
@@ -57,8 +57,11 @@ public:
 
     blob_session::blob_tag_type generate_reference_tag(blob_session::blob_id_type, blob_session::session_id_type);
 
+    // for test only
+    std::size_t session_store_current_size() const noexcept;
+
 private:
-    blob_relay_service::api api_;
+    api api_;
     blob_session_store session_store_;
     bool dev_accept_mock_tag_;
     tag_generator<blob_session::blob_id_type, blob_session::session_id_type, blob_session::blob_tag_type> tag_generator_{};

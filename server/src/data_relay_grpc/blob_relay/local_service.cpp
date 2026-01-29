@@ -1,12 +1,14 @@
 #include <fstream>
 
-#include "session_manager.h"
-#include "data_relay_grpc/blob_relay/local_service.h"
+#include <data_relay_grpc/common/session.h>
+#include "local_service.h"
 #include "utils.h"
 
 namespace data_relay_grpc::blob_relay {
 
-local_service::local_service(blob_session_manager& session_manager)
+using data_relay_grpc::common::blob_session;
+
+local_service::local_service(common::blob_session_manager& session_manager)
     : session_manager_(session_manager) {
 }
 

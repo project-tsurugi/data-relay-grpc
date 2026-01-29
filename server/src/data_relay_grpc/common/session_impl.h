@@ -23,13 +23,14 @@
 #include <atomic>
 #include <mutex>
 
-#include <data_relay_grpc/blob_relay/session.h>
+#include <data_relay_grpc/common/session.h>
+// #include <data_relay_grpc/blob_relay/service.h>
 #include "session_manager.h"
 
-namespace data_relay_grpc::blob_relay {
+namespace data_relay_grpc::common {
 
 /**
- * @brief blob session impl
+ * @brief blob session impl class
  */
 class blob_session_impl {
 public:
@@ -106,8 +107,10 @@ public:
       */
     [[nodiscard]] blob_session::blob_tag_type get_tag(blob_session::blob_id_type blob_id) const;
 
-// internal use
+// below this point is for internal use
     std::pair<blob_id_type, std::filesystem::path> create_blob_file(const std::string prefix = "upload");
+
+    void delete_blob_file(blob_id_type bid);
 
     std::optional<transaction_id_type> get_transaction_id() {
         return transaction_id_opt_;
@@ -134,21 +137,6 @@ private:
 
     friend class blob_session;
     friend class blob_session_manager;
-    friend class streaming_service;
-    friend class local_service;
-    friend class stream_quota_test; // for test
-
-    void delete_blob_file(blob_id_type bid) {
-        std::lock_guard<std::mutex> lock(mtx_);
-        if (auto itr = blobs_.find(bid); itr != blobs_.end()) {
-            session_store_.remove(itr->second.second);         // decrease session storage usage counter
-            if (std::filesystem::exists(itr->second.first)) {  // maybe blob file has been moved
-                std::filesystem::remove(itr->second.first);
-            }
-            blobs_.erase(itr);
-            return;
-        }
-    }
 };
 
 } // namespace

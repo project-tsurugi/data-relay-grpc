@@ -18,10 +18,13 @@
 #include <vector>
 
 #include <data_relay_grpc/blob_relay/service.h>
+#include "data_relay_grpc/common/session_manager.h"
+
+#include "streaming_service.h"
+#include "local_service.h"
 
 namespace data_relay_grpc::blob_relay {
 
-class blob_session_manager;
 class streaming_service;
 class local_service;
 
@@ -30,26 +33,23 @@ class local_service;
  */
 class blob_relay_service_impl {
 public:
-    blob_relay_service_impl(blob_relay_service::api const& f, service_configuration const& p);
+    blob_relay_service_impl(common::api const& api, service_configuration const& conf);
 
     [[nodiscard]] blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt);
 
     std::vector<::grpc::Service *>& services() noexcept;
 
 // for tests only
-    blob_session_manager& get_session_manager();
+    common::blob_session_manager& get_session_manager();
 
 private:
-    blob_relay_service::api api_;
+    common::api api_;
     service_configuration configuration_;
-    std::vector<::grpc::Service *> services_{};
+    common::blob_session_manager session_manager_;
+    std::unique_ptr<streaming_service> streaming_service_;
+    std::unique_ptr<local_service> local_service_;
 
-    using unique_ptr_session_manager = std::unique_ptr<blob_session_manager, void(*)(blob_session_manager*)>;
-    using unique_ptr_streaming_service = std::unique_ptr<streaming_service, void(*)(streaming_service*)>;
-    using unique_ptr_local_service = std::unique_ptr<local_service, void(*)(local_service*)>;
-    unique_ptr_session_manager session_manager_;
-    unique_ptr_streaming_service streaming_service_;
-    unique_ptr_local_service local_service_;
+    std::vector<::grpc::Service *> services_{};
 };
 
 } // namespace

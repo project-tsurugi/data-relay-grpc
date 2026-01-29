@@ -96,17 +96,16 @@ protected:
         return rv;
     }
 
-    blob_session_manager& get_session_manager() {
+    common::blob_session_manager& get_session_manager() {
         return  service_->get_session_manager();
     }
 
     std::size_t session_store_current_usage() {
-        auto& session_impl = get_session_manager().get_session_impl(session_->session_id());
-        return session_impl.session_store_.current_size_.load();
+        return get_session_manager().session_store_current_size();
     }
 
 private:
-    blob_relay_service::api api_for_test{
+    common::api api_for_test{
         [this](std::uint64_t bid, std::uint64_t tid) {
             return tag_for_test;
         },

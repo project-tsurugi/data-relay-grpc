@@ -67,12 +67,12 @@ protected:
         blob_id_for_test = session_->add(path);
     }
 
-    blob_session_manager& get_session_manager() {
+    common::blob_session_manager& get_session_manager() {
         return  service_->get_session_manager();
     }
 
 private:
-    blob_relay_service::api api_for_test{
+    common::api api_for_test{
         [this](std::uint64_t bid, std::uint64_t tid) {
             return tag_for_test;
         },

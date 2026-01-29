@@ -16,9 +16,6 @@
 
 #include "service_impl.h"
 
-#include "session_manager.h"
-#include "streaming_service.h"
-#include "local_service.h"
 #ifdef SMOKE_TEST_SUPPORT
 #include "data_relay_grpc/blob_relay/smoke_test/support.h"
 #endif
@@ -31,14 +28,14 @@ static std::unique_ptr<smoketest_support_service> unqp_smoketest_support_service
 }
 #endif
 
-blob_relay_service_impl::blob_relay_service_impl(blob_relay_service::api const& f, service_configuration const& c)
-    : api_(f),
-      configuration_(c),
-      session_manager_(unique_ptr_session_manager(new blob_session_manager(api_, configuration_.session_store(), c.session_quota_size(), c.dev_accept_mock_tag()), [](blob_session_manager* e){ delete e; })),
-      streaming_service_(unique_ptr_streaming_service(new streaming_service(*session_manager_, configuration_.stream_chunk_size()), [](streaming_service* e){ delete  e; })),
-      local_service_(unique_ptr_local_service(new local_service(*session_manager_), [](local_service* e){ delete  e; })) {
+blob_relay_service_impl::blob_relay_service_impl(common::api const& api, service_configuration const& conf)
+    : api_(api),
+      configuration_(conf),
+      session_manager_(api_, configuration_.session_store(), configuration_.session_quota_size(), configuration_.dev_accept_mock_tag()),
+      streaming_service_(std::make_unique<streaming_service>(session_manager_, configuration_.stream_chunk_size())),
+      local_service_(std::make_unique<local_service>(session_manager_)) {
 #ifdef SMOKE_TEST_SUPPORT
-    smoke_test::unqp_smoketest_support_service = std::make_unique<smoke_test::smoketest_support_service>(*session_manager_);
+    smoke_test::unqp_smoketest_support_service = std::make_unique<smoke_test::smoketest_support_service>(session_manager_);
 #endif
     if (streaming_service_) {
         services_.emplace_back(streaming_service_.get());
@@ -52,7 +49,7 @@ blob_relay_service_impl::blob_relay_service_impl(blob_relay_service::api const& 
 }
 
 blob_session& blob_relay_service_impl::create_session(std::optional<blob_session::transaction_id_type> transaction_id_opt) {
-    return session_manager_->create_session(transaction_id_opt);
+    return session_manager_.create_session(transaction_id_opt);
 }
 
 std::vector<::grpc::Service *>& blob_relay_service_impl::services() noexcept {
@@ -60,8 +57,8 @@ std::vector<::grpc::Service *>& blob_relay_service_impl::services() noexcept {
 }
 
 // for tests only
-blob_session_manager& blob_relay_service_impl::get_session_manager() {
-    return *session_manager_;
+common::blob_session_manager& blob_relay_service_impl::get_session_manager() {
+    return session_manager_;
 }
 
 } // namespace

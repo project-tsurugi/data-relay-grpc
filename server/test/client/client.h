@@ -14,7 +14,7 @@
 
 #include <gflags/gflags.h>
 
-#include <data-relay-grpc/blob_relay/api_version.h>
+#include <data_relay_grpc/blob_relay/api_version.h>
 #include "data_relay_grpc/proto/blob_relay/blob_relay_streaming.grpc.pb.h"
 
 DECLARE_uint32(fault);

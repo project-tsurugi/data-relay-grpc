@@ -16,9 +16,9 @@
 
 #include "session_manager.h"
 
-namespace data_relay_grpc::blob_relay {
+namespace data_relay_grpc::common {
 
-blob_session_manager::blob_session_manager(const blob_relay_service::api& api, const std::string& directory, std::size_t quota, bool dev_accept_mock_tag)
+blob_session_manager::blob_session_manager(const api& api, const std::string& directory, std::size_t quota, bool dev_accept_mock_tag)
     : api_(api), session_store_(directory, quota), dev_accept_mock_tag_(dev_accept_mock_tag) {
 }
 
@@ -82,6 +82,10 @@ blob_session::blob_id_type blob_session_manager::get_new_blob_id() {
 
 blob_session::blob_tag_type blob_session_manager::generate_reference_tag(blob_session::blob_id_type blob_id, blob_session::session_id_type session_id) {
     return tag_generator_.generate_reference_tag(blob_id, session_id);
+}
+
+std::size_t blob_session_manager::session_store_current_size() const noexcept {
+    return session_store_.current_size();
 }
 
 } // namespace

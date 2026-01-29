@@ -20,8 +20,8 @@
 
 namespace data_relay_grpc::blob_relay {
 
-blob_relay_service::blob_relay_service(api const& funcs, service_configuration const& conf)
-    : impl_(std::unique_ptr<blob_relay_service_impl, void(*)(blob_relay_service_impl*)>(new blob_relay_service_impl(funcs, conf), [](blob_relay_service_impl* e){ delete  e; })) {
+blob_relay_service::blob_relay_service(api const& api, service_configuration const& conf)
+    : impl_(std::unique_ptr<blob_relay_service_impl, void(*)(blob_relay_service_impl*)>(new blob_relay_service_impl(api, conf), [](blob_relay_service_impl* e){ delete  e; })) {
 }
 
 blob_session& blob_relay_service::create_session(std::optional<blob_session::transaction_id_type> transaction_id_opt) {
