@@ -24,6 +24,7 @@
 
 #include <data_relay_grpc/common/session.h>
 #include <data_relay_grpc/common/api.h>
+#include <data_relay_grpc/common/service.h>
 #include <data_relay_grpc/blob_relay/service_configuration.h>
 
 namespace data_relay_grpc::blob_relay {
@@ -35,17 +36,9 @@ class blob_relay_service_impl;
 /**
  * @brief blob relay service
  */
-class blob_relay_service {
+class blob_relay_service : public common::service {
 public:
     using api = data_relay_grpc::common::api;
-
-    /**
-      * @brief Create a new session for BLOB operations.
-      * @param transaction_id The ID of the transaction that owns the session,
-      *    or empty if the session is not associated with any transaction
-      * @return the created session object
-      */
-    [[nodiscard]] blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt);
 
     /**
       * @brief Returns a vector of gRPC service.
@@ -58,6 +51,8 @@ public:
       * @param conf the service_configuration
       */
     blob_relay_service(blob_relay_service::api const& api, service_configuration const& conf);
+
+    [[nodiscard]] blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt) override;
 
 private:
     std::unique_ptr<blob_relay_service_impl, void(*)(blob_relay_service_impl*)> impl_;
