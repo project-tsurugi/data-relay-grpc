@@ -32,15 +32,15 @@ blob_relay_service_impl::blob_relay_service_impl(common::api const& api, service
     : api_(api),
       configuration_(conf),
       session_manager_(api_, configuration_.session_store(), configuration_.session_quota_size(), configuration_.dev_accept_mock_tag()),
-      streaming_service_(std::make_unique<streaming_service>(session_manager_, configuration_.stream_chunk_size())),
-      local_service_(std::make_unique<local_service>(session_manager_)) {
+      streaming_service_(std::make_unique<streaming_service>(session_manager_, configuration_.stream_chunk_size())) {
 #ifdef SMOKE_TEST_SUPPORT
     smoke_test::unqp_smoketest_support_service = std::make_unique<smoke_test::smoketest_support_service>(session_manager_);
 #endif
     if (streaming_service_) {
         services_.emplace_back(streaming_service_.get());
     }
-    if (local_service_) {
+    if (configuration_.local_enabled()) {
+        local_service_ = std::make_unique<local_service>(session_manager_);
         services_.emplace_back(local_service_.get());
     }
 #ifdef SMOKE_TEST_SUPPORT

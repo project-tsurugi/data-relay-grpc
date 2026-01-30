@@ -10,7 +10,7 @@ add_executable(test_client
         ${CLIENT_SOURCES}
 )
 
-add_dependencies(${test_target}
+add_dependencies(test_client
         build_protos
         )
 

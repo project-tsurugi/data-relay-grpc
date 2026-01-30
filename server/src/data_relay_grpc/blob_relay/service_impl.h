@@ -47,8 +47,8 @@ private:
     service_configuration configuration_;
     common::blob_session_manager session_manager_;
     std::unique_ptr<streaming_service> streaming_service_;
-    std::unique_ptr<local_service> local_service_;
 
+    std::unique_ptr<local_service> local_service_{};
     std::vector<::grpc::Service *> services_{};
 };
 

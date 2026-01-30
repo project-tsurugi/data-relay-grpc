@@ -28,7 +28,7 @@ blob_session& blob_relay_service::create_session(std::optional<blob_session::tra
     return impl_->create_session(transaction_id_opt);
 }
 
-std::vector<::grpc::Service *>& blob_relay_service::services() noexcept {
+const std::vector<::grpc::Service *>& blob_relay_service::services() const noexcept {
     return impl_->services();
 }
 

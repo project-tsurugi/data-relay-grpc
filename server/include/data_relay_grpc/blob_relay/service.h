@@ -48,9 +48,9 @@ public:
     [[nodiscard]] blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt);
 
     /**
-      * @brief Returns a vector of gRPC servce.
+      * @brief Returns a vector of gRPC service.
       */
-    std::vector<::grpc::Service *>& services() noexcept;
+    const std::vector<::grpc::Service *>& services() const noexcept;
 
     /**
       * @brief Create object.
