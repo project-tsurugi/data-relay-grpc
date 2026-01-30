@@ -17,6 +17,7 @@
 
 #include <array>
 #include <string>
+#include <cstring>
 #include <stdexcept>
 
 #include <openssl/hmac.h>
@@ -24,7 +25,7 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
-namespace data_relay_grpc::blob_relay {
+namespace data_relay_grpc::common {
 
 template <typename T1, typename T2, typename T3>
 class tag_generator {

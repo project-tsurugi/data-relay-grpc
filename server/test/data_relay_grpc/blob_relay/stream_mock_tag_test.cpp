@@ -9,7 +9,7 @@
 #include "test_root.h"
 #include "data_relay_grpc/grpc/grpc_server_test_base.h"
 
-#include <data_relay_grpc/blob_relay/service.h>
+#include "data_relay_grpc/blob_relay/service_impl.h"
 #include "data_relay_grpc/blob_relay/streaming_service.h"
 
 namespace data_relay_grpc::blob_relay {
@@ -33,7 +33,9 @@ protected:
     }
     void PostSetUp() {
         set_service_handler([this](::grpc::ServerBuilder& builder) {
-            service_->add_blob_relay_service(builder);
+            for(auto&& e: service_->services()) {
+                builder.RegisterService(e);
+            }
         });
         session_ = &service_->create_session(transaction_id_for_test);
     }
@@ -56,12 +58,12 @@ protected:
         blob_id_for_test = session_->add(path);
     }
 
-    blob_session_manager& get_session_manager() {
+    common::blob_session_manager& get_session_manager() {
         return  service_->get_session_manager();
     }
 
 protected:
-    blob_relay_service::api api_for_test{
+    common::api api_for_test{
         [this](std::uint64_t bid, std::uint64_t tid) {
             return tag_for_test;
         },
@@ -72,7 +74,7 @@ protected:
             return std::filesystem::path{};
         }
     };
-    std::unique_ptr<blob_relay_service> service_{};
+    std::unique_ptr<blob_relay_service_impl> service_{};
 
 private:
     std::uint64_t session_id_{};
@@ -81,7 +83,7 @@ private:
 };
 
 TEST_F(stream_mock_tag_test, get_ok) {
-    service_ = std::make_unique<blob_relay_service>(
+    service_ = std::make_unique<blob_relay_service_impl>(
         api_for_test,
         service_configuration {
             helper_->path(session_store_name),  // session_store
@@ -126,7 +128,7 @@ TEST_F(stream_mock_tag_test, get_ok) {
 }
 
 TEST_F(stream_mock_tag_test, get_with_mocktag_ng) {
-    service_ = std::make_unique<blob_relay_service>(
+    service_ = std::make_unique<blob_relay_service_impl>(
         api_for_test,
         service_configuration {
             helper_->path(session_store_name),  // session_store
@@ -148,7 +150,7 @@ TEST_F(stream_mock_tag_test, get_with_mocktag_ng) {
     req.set_session_id(session_->session_id());
     auto* blob = req.mutable_blob();
     blob->set_object_id(blob_id_for_test);
-    blob->set_tag(blob_session_manager::MOCK_TAG);
+    blob->set_tag(common::blob_session_manager::MOCK_TAG);
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;
@@ -160,7 +162,7 @@ TEST_F(stream_mock_tag_test, get_with_mocktag_ng) {
 }
 
 TEST_F(stream_mock_tag_test, get_with_mocktag_ok) {
-    service_ = std::make_unique<blob_relay_service>(
+    service_ = std::make_unique<blob_relay_service_impl>(
         api_for_test,
         service_configuration {
             helper_->path(session_store_name),  // session_store
@@ -182,7 +184,7 @@ TEST_F(stream_mock_tag_test, get_with_mocktag_ok) {
     req.set_session_id(session_->session_id());
     auto* blob = req.mutable_blob();
     blob->set_object_id(blob_id_for_test);
-    blob->set_tag(blob_session_manager::MOCK_TAG);
+    blob->set_tag(common::blob_session_manager::MOCK_TAG);
     std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
 
     GetStreamingResponse resp;

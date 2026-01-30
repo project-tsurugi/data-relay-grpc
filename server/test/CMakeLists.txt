@@ -1,7 +1,6 @@
 set(test_target data-relay-grpc-test)
 
 # Generate protobuf and gRPC files
-find_program(PROTOBUF_PROTOC protoc)
 find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
 
 # For protos used in test only
@@ -24,10 +23,6 @@ foreach(SRC_FILE ${TEST_PROTO_OUT} ${TEST_GRPC_OUT})
     list(APPEND TEST_PROTO_SRCS ${SRC_FILE})
   endif()
 endforeach()
-
-
-# Add generated files to sources
-list(APPEND SOURCES ${TEST_PROTO_SRCS})
 
 set_source_files_properties(
         ${TEST_PROTO_SRCS}
@@ -73,6 +68,7 @@ endfunction (add_test_executable)
 
 file(GLOB SRCS
         "data_relay_grpc/blob_relay/*.cpp"
+        "data_relay_grpc/common/*.cpp"
         "data_relay_grpc/grpc/*.cpp"
         "data_relay_grpc/grpc/service/*.cpp"
         )

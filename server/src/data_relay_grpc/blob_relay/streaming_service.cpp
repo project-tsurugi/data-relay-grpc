@@ -1,18 +1,20 @@
 #include <fstream>
 #include <optional>
 
-#include "session_manager.h"
-#include "streaming_service.h"
-
 #include <glog/logging.h>
+
+#include <data_relay_grpc/common/session.h>
 #include "data_relay_grpc/logging_helper.h"
 #include "data_relay_grpc/logging.h"
 
+#include "streaming_service.h"
 #include "utils.h"
 
 namespace data_relay_grpc::blob_relay {
 
-streaming_service::streaming_service(blob_session_manager& session_manager, std::size_t chunk_size)
+using data_relay_grpc::common::blob_session;
+
+streaming_service::streaming_service(common::blob_session_manager& session_manager, std::size_t chunk_size)
     : session_manager_(session_manager), chunk_size_(chunk_size) {
 }
 
@@ -74,7 +76,7 @@ streaming_service::streaming_service(blob_session_manager& session_manager, std:
 
         // should be done after confirming the blob's existence
         if (session_impl.get_tag(blob_id) != blob_tag) {
-            if (!session_manager_.dev_accept_mock_tag() || blob_tag != blob_session_manager::MOCK_TAG) {
+            if (!session_manager_.dev_accept_mock_tag() || blob_tag != common::blob_session_manager::MOCK_TAG) {
                 VLOG_LP(log_debug) << "finishes with PERMISSION_DENIED";
                 return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the given tag does not match the desiring value");
             }

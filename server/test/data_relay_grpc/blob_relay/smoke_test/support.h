@@ -20,7 +20,7 @@
 #include <optional>
 #include <mutex>
 
-#include "data_relay_grpc/blob_relay/session_manager.h"
+#include "data_relay_grpc/common/session_manager.h"
 
 #include "blob_relay_smoke_test.pb.h"
 #include "blob_relay_smoke_test.grpc.pb.h"
@@ -29,7 +29,7 @@ namespace data_relay_grpc::blob_relay::smoke_test {
 
 class smoketest_support_service final : public proto::BlobRelaySmokeTestSupport::Service {
 public:
-    smoketest_support_service(blob_session_manager& session_manager) : session_manager_(session_manager) {
+    smoketest_support_service(common::blob_session_manager& session_manager) : session_manager_(session_manager) {
     }
     ~smoketest_support_service() override = default;
 
@@ -106,7 +106,7 @@ public:
     }
 
 private:
-    blob_session_manager& session_manager_;
+    common::blob_session_manager& session_manager_;
     std::string ref_{"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n"};
     std::atomic_uint64_t file_id_{};
 };

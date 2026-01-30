@@ -8,8 +8,11 @@ file(GLOB CLIENT_SOURCES
 
 add_executable(test_client
         ${CLIENT_SOURCES}
-        ${CLIENT_PROTO_SRCS}
 )
+
+add_dependencies(test_client
+        build_protos
+        )
 
 set_target_properties(test_client
         PROPERTIES

@@ -21,7 +21,7 @@
 #include <filesystem>
 #include <vector>
 
-namespace data_relay_grpc::blob_relay {
+namespace data_relay_grpc::common {
 
 class blob_session_manager;
 class blob_session_impl;

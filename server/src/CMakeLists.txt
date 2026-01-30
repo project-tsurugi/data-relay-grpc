@@ -1,4 +1,5 @@
 file(GLOB SOURCES
+        "data_relay_grpc/common/*.cpp"
         "data_relay_grpc/blob_relay/*.cpp"
 )
 

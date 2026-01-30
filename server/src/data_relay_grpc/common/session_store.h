@@ -18,7 +18,7 @@
 #include <filesystem>
 #include <atomic>
 
-namespace data_relay_grpc::blob_relay {
+namespace data_relay_grpc::common {
 
 /**
  * @brief blob session
@@ -51,6 +51,11 @@ public:
         }
     }
 
+    // for test only
+    std::size_t current_size() const noexcept {
+        return current_size_.load();
+    }
+
   private:
     std::filesystem::path directory_;
     std::size_t quota_;
@@ -81,8 +86,6 @@ public:
             current_size_.fetch_sub(size);
         }
     }
-
-    friend class stream_quota_test; // for test
 };
 
 } // namespace
