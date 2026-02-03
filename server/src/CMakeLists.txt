@@ -111,7 +111,7 @@ if(SMOKE_TEST_SUPPORT)
         PRIVATE ${CMAKE_SOURCE_DIR}/test
         PRIVATE ${CMAKE_BINARY_DIR}/src
     )
-    target_compile_options(${package_name} PUBLIC -DSMOKE_TEST_SUPPORT)
+    target_compile_options(${package_name} PRIVATE -DSMOKE_TEST_SUPPORT)
 endif()
 
 add_library(data-relay-grpc-impl INTERFACE)
