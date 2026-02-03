@@ -46,11 +46,17 @@ public:
     const std::vector<::grpc::Service *>& services() const noexcept;
 
     /**
-      * @brief Create object.
+      * @brief Create an object.
       * @param api the api for tag related calculations
       * @param conf the service_configuration
       */
     blob_relay_service(blob_relay_service::api const& api, service_configuration const& conf);
+
+    /**
+     * @brief Destruct the object.
+     */
+    virtual ~blob_relay_service() = default;
+
 
     [[nodiscard]] blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt) override;
 
