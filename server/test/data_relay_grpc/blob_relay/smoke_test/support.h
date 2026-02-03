@@ -20,7 +20,7 @@
 #include <optional>
 #include <mutex>
 
-#include "data_relay_grpc/common/session_manager.h"
+#include <data_relay_grpc/common/detail/session_manager.h>
 
 #include "blob_relay_smoke_test.pb.h"
 #include "blob_relay_smoke_test.grpc.pb.h"

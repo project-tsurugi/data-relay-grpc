@@ -21,10 +21,15 @@
 #include <filesystem>
 #include <vector>
 
-namespace data_relay_grpc::common {
-
+namespace data_relay_grpc::common::detail {
 class blob_session_manager;
 class blob_session_impl;
+}
+
+namespace data_relay_grpc::common {
+
+using data_relay_grpc::common::detail::blob_session_manager;
+using data_relay_grpc::common::detail::blob_session_impl;
 
 /**
  * @brief blob session

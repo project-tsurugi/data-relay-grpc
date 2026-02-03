@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <vector>
 #include <exception>
 
 #include "test_root.h"
@@ -14,16 +15,17 @@
 
 namespace data_relay_grpc::blob_relay {
 
-class stream_remove_test : public data_relay_grpc::grpc::grpc_server_test_base {
+class stream_quota_remove_by_entries_test : public data_relay_grpc::grpc::grpc_server_test_base {
 protected:
-    static constexpr std::size_t ARRAY_SIZE = 100;
-    const std::string session_store_name{"session_store"};
     const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
+    const std::string session_store_name{"session_store"};
+    const std::uint64_t quota_size_for_test = 4096;
     const std::uint64_t transaction_id_for_test = 12345;
     const std::uint64_t blob_id_for_test = 6789;
     const std::uint64_t tag_for_test = 2468;
+    const std::uint64_t loop_count = 10;
 
-    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_remove_test")};
+    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_quota_remove_by_entries_test")};
     blob_session* session_{};
 
     void SetUp() override {
@@ -34,7 +36,7 @@ protected:
             api_for_test,
             service_configuration{
                 helper_->path(session_store_name),  // session_store
-                0,                                  // session_quota_size
+                quota_size_for_test,                // session_quota_size
                 false,                              // local_enabled
                 false,                              // local_upload_copy_file
                 32,                                 // stream_chunk_size
@@ -54,7 +56,7 @@ protected:
         data_relay_grpc::grpc::grpc_server_test_base::TearDown();
     }
 
-    void send_blob(PutStreamingResponse& res) {
+    ::grpc::Status send_blob(PutStreamingResponse& res) {
         auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
         BlobRelayStreaming::Stub stub(channel);
         ::grpc::ClientContext context;
@@ -66,24 +68,23 @@ protected:
         auto* metadata = req_metadata.mutable_metadata();
         metadata->set_api_version(BLOB_RELAY_API_VERSION);
         metadata->set_session_id(session_->session_id());
-        metadata->set_blob_size(test_partial_blob.size() * 10);
+        metadata->set_blob_size(test_partial_blob.size() * loop_count);
         if (!writer->Write(req_metadata)) {
-            FAIL();
+            throw std::runtime_error("test failed");
         }
 
         // send blob data begin
         PutStreamingRequest req_chunk;
         std::stringstream ss{};
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < loop_count; i++) {
             req_chunk.set_chunk(test_partial_blob);
             ss << test_partial_blob;
             if (!writer->Write(req_chunk)) {
-                FAIL();
+                throw std::runtime_error("test failed");
             }
         }
         writer->WritesDone();
-        ::grpc::Status status = writer->Finish();
-        // send blob data end
+        return writer->Finish();
     }
 
     std::size_t file_count() {
@@ -96,7 +97,11 @@ protected:
     }
 
     common::blob_session_manager& get_session_manager() {
-        return service_->impl().get_session_manager();
+        return  service_->impl().get_session_manager();
+    }
+
+    std::size_t session_store_current_usage() {
+        return get_session_manager().session_store_current_size();
     }
 
 private:
@@ -108,77 +113,39 @@ private:
             return helper_->last_path();
         }
     };
+
     std::unique_ptr<blob_relay_service> service_{};
     std::uint64_t session_id_{};
     std::uint64_t transaction_id_{};
     std::uint64_t blob_id_{};
 };
 
-TEST_F(stream_remove_test, vector) {
+TEST_F(stream_quota_remove_by_entries_test, remove_by_entries) {
     start_server();
 
-    std::array<PutStreamingResponse, ARRAY_SIZE> res{};
-    std::vector<std::uint64_t> bids(ARRAY_SIZE);
-    for (int i = 0; i < res.size(); i++) {
-        send_blob(res.at(i));
-        bids.at(i) = (res.at(i)).blob().object_id();
-    }
-    EXPECT_EQ(ARRAY_SIZE, file_count());
-
-    auto& session_manager = get_session_manager();
-    try {
-        auto& session = session_manager.get_session(session_->session_id());
-        session.remove(bids.begin(), bids.end());
-        EXPECT_EQ(0, file_count());
-    } catch (std::runtime_error &ex) {
-        FAIL();
-    }
-}
-
-TEST_F(stream_remove_test, vector_reverse) {
-    start_server();
-
-    std::array<PutStreamingResponse, ARRAY_SIZE> res{};
-    std::vector<std::uint64_t> bids(ARRAY_SIZE);
-    for (int i = 0; i < res.size(); i++) {
-        send_blob(res.at(i));
-        bids.at(i) = (res.at(i)).blob().object_id();
-    }
-    EXPECT_EQ(ARRAY_SIZE, file_count());
-
-    auto& session_manager = get_session_manager();
-    try {
-        auto& session = session_manager.get_session(session_->session_id());
-        auto itr = bids.begin();
-        for (int i = 1; i < ARRAY_SIZE; i++) {
-            itr++;
+    auto blob_size = loop_count * test_partial_blob.length();
+    std::vector<PutStreamingResponse> res{quota_size_for_test / blob_size};
+    std::uint64_t blob_count{0};
+    for (std::uint64_t l = 0; l < (quota_size_for_test - blob_size); l += blob_size) {
+        auto status = send_blob(res.at(blob_count));
+        try {
+            EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
+        } catch (std::runtime_error &ex) {
+            std::cerr << ex.what() << std::endl;
+            FAIL();
         }
-        EXPECT_THROW({ session.remove(itr, bids.begin()); }, std::runtime_error);
-        EXPECT_EQ(ARRAY_SIZE, file_count());
-    } catch (std::runtime_error &ex) {
-        FAIL();
+        blob_count++;
     }
-}
+    EXPECT_EQ(blob_count, file_count());
 
-TEST_F(stream_remove_test, list) {
-    start_server();
+    std::vector<blob_session::blob_id_type> entries = session_->entries();
+    EXPECT_EQ(entries.size(), file_count());
 
-    std::array<PutStreamingResponse, ARRAY_SIZE> res{};
-    std::list<std::uint64_t> bids{};
-    for (int i = 0; i < res.size(); i++) {
-        send_blob(res.at(i));
-        bids.emplace_back((res.at(i)).blob().object_id());
-    }
-    EXPECT_EQ(ARRAY_SIZE, file_count());
+    session_->remove(entries.begin(), entries.end());
+    EXPECT_EQ(0, file_count());
 
-    auto& session_manager = get_session_manager();
-    try {
-        auto& session = session_manager.get_session(session_->session_id());
-        session.remove(bids.begin(), bids.end());
-        EXPECT_EQ(0, file_count());
-    } catch (std::runtime_error &ex) {
-        FAIL();
-    }
+    std::vector<blob_session::blob_id_type> entries_after = session_->entries();
+    EXPECT_EQ(entries_after.size(), 0);
 }
 
 } // namespace

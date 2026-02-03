@@ -18,7 +18,7 @@
 #include <vector>
 
 #include <data_relay_grpc/blob_relay/service.h>
-#include "data_relay_grpc/common/session_manager.h"
+#include <data_relay_grpc/common/detail/session_manager.h>
 
 #include "streaming_service.h"
 #include "local_service.h"
@@ -45,11 +45,13 @@ public:
 private:
     common::api api_;
     service_configuration configuration_;
-    common::blob_session_manager session_manager_;
     std::unique_ptr<streaming_service> streaming_service_;
 
+    std::shared_ptr<common::blob_session_manager> session_manager_{};
     std::unique_ptr<local_service> local_service_{};
     std::vector<::grpc::Service *> services_{};
+
+    friend class blob_relay_service;
 };
 
 } // namespace

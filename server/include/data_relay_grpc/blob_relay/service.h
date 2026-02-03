@@ -60,6 +60,10 @@ public:
 
     [[nodiscard]] blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt) override;
 
+
+    // for test purpose only
+    [[nodiscard]] blob_relay_service_impl& impl() const noexcept;
+
 private:
     std::unique_ptr<blob_relay_service_impl, void(*)(blob_relay_service_impl*)> impl_;
 };

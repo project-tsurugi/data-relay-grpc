@@ -1,9 +1,9 @@
 #pragma once
 #include <grpcpp/grpcpp.h>
 
+#include <data_relay_grpc/common/detail/session_manager.h>
 #include "data_relay_grpc/proto/blob_relay/blob_relay_local.grpc.pb.h"
 #include "data_relay_grpc/proto/blob_relay/blob_relay_local.pb.h"
-#include "data_relay_grpc/common/session_manager.h"
 
 namespace data_relay_grpc::blob_relay {
 
@@ -15,7 +15,7 @@ using data_relay_grpc::proto::blob_relay::blob_relay_local::GetLocalResponse;
 
 class local_service final : public BlobRelayLocal::Service {
   public:
-    explicit local_service(common::blob_session_manager& server);
+    explicit local_service(std::shared_ptr<common::blob_session_manager>& server);
     ~local_service() override = default;
 
     local_service(const local_service&) = delete;
@@ -32,7 +32,7 @@ class local_service final : public BlobRelayLocal::Service {
                        PutLocalResponse* response) override;
 
 private:
-    common::blob_session_manager& session_manager_;
+    std::shared_ptr<common::blob_session_manager>& session_manager_;
 };
 
 } // namespace data_relay_grpc::blob_relay

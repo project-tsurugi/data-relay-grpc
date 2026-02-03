@@ -14,7 +14,7 @@
 
 namespace data_relay_grpc::blob_relay {
 
-class stream_mock_tag_test : public data_relay_grpc::grpc::grpc_server_test_base {
+class stream_mock_tag_ok_test : public data_relay_grpc::grpc::grpc_server_test_base {
 protected:
     const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
     const std::string session_store_name{"session_store"};
@@ -23,7 +23,7 @@ protected:
     const std::uint64_t api_version = 0;
     std::uint64_t blob_id_for_test{};
 
-    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_mock_tag_test")};
+    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_mock_tag_ok_test")};
     blob_session* session_{};
 
     void SetUp() override {
@@ -59,7 +59,7 @@ protected:
     }
 
     common::blob_session_manager& get_session_manager() {
-        return  service_->get_session_manager();
+        return  service_->impl().get_session_manager();
     }
 
 protected:
@@ -74,7 +74,7 @@ protected:
             return std::filesystem::path{};
         }
     };
-    std::unique_ptr<blob_relay_service_impl> service_{};
+    std::unique_ptr<blob_relay_service> service_{};
 
 private:
     std::uint64_t session_id_{};
@@ -82,87 +82,8 @@ private:
     std::atomic_uint64_t blob_id_{};
 };
 
-TEST_F(stream_mock_tag_test, get_ok) {
-    service_ = std::make_unique<blob_relay_service_impl>(
-        api_for_test,
-        service_configuration {
-            helper_->path(session_store_name),  // session_store
-            0,                                  // session_quota_size
-            false,                              // local_enabled
-            false,                              // local_upload_copy_file
-            32,                                 // stream_chunk_size
-            false                               // dev_accept_mock_tag
-        });
-    PostSetUp();
-    start_server();
-    set_blob_data();
-    
-    auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
-    BlobRelayStreaming::Stub stub(channel);
-    ::grpc::ClientContext context;
-    GetStreamingRequest req;
-    req.set_api_version(api_version);
-    req.set_session_id(session_->session_id());
-    auto* blob = req.mutable_blob();
-    blob->set_object_id(blob_id_for_test);
-    blob->set_tag(tag_for_test);
-    std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
-
-    GetStreamingResponse resp;
-    reader->Read(&resp);
-    if (resp.payload_case() != GetStreamingResponse::PayloadCase::kMetadata) {
-        FAIL();
-    }
-    std::size_t blob_size = resp.metadata().blob_size();  // streaming_service always set blob_size
-
-    std::string blob_data{};
-    while (reader->Read(&resp)) {
-        if (resp.payload_case() != GetStreamingResponse::PayloadCase::kChunk) {
-            FAIL();
-        }
-        blob_data += resp.chunk();
-    }
-    ::grpc::Status status = reader->Finish();
-    EXPECT_EQ(status.error_code(), ::grpc::StatusCode::OK);
-    EXPECT_EQ(blob_data.size(), blob_size);
-}
-
-TEST_F(stream_mock_tag_test, get_with_mocktag_ng) {
-    service_ = std::make_unique<blob_relay_service_impl>(
-        api_for_test,
-        service_configuration {
-            helper_->path(session_store_name),  // session_store
-            0,                                  // session_quota_size
-            false,                              // local_enabled
-            false,                              // local_upload_copy_file
-            32,                                 // stream_chunk_size
-            false                               // dev_accept_mock_tag
-        });
-    PostSetUp();
-    start_server();
-    set_blob_data();
-    
-    auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
-    BlobRelayStreaming::Stub stub(channel);
-    ::grpc::ClientContext context;
-    GetStreamingRequest req;
-    req.set_api_version(api_version);
-    req.set_session_id(session_->session_id());
-    auto* blob = req.mutable_blob();
-    blob->set_object_id(blob_id_for_test);
-    blob->set_tag(common::blob_session_manager::MOCK_TAG);
-    std::unique_ptr<::grpc::ClientReader<GetStreamingResponse> > reader(stub.Get(&context, req));
-
-    GetStreamingResponse resp;
-    if (reader->Read(&resp)) {
-        FAIL();
-    }
-    ::grpc::Status status = reader->Finish();
-    EXPECT_EQ(status.error_code(), ::grpc::StatusCode::PERMISSION_DENIED);
-}
-
-TEST_F(stream_mock_tag_test, get_with_mocktag_ok) {
-    service_ = std::make_unique<blob_relay_service_impl>(
+TEST_F(stream_mock_tag_ok_test, get_with_mocktag_ok) {
+    service_ = std::make_unique<blob_relay_service>(
         api_for_test,
         service_configuration {
             helper_->path(session_store_name),  // session_store

@@ -34,6 +34,9 @@ public:
       * @return the created session object
       */
     [[nodiscard]] virtual blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt) = 0;
+
+protected:
+    static std::shared_ptr<blob_session_manager> session_manager_;
 };
 
 } // namespace
