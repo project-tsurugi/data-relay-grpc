@@ -13,30 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
 
-#include <optional>
-#include <cstdint>
+#include <memory>
 
-#include <data_relay_grpc/common/session.h>
+#include <data_relay_grpc/common/service.h>
+#include <data_relay_grpc/common/detail/session_manager.h>
 
 namespace data_relay_grpc::common {
 
-/**
- * @brief blob relay service base
- */
-class service {
-public:
-    /**
-      * @brief Create a new session for BLOB operations.
-      * @param transaction_id The ID of the transaction that owns the session,
-      *    or empty if the session is not associated with any transaction
-      * @return the created session object
-      */
-    [[nodiscard]] virtual blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt) = 0;
-
-protected:
-    static std::shared_ptr<blob_session_manager> session_manager_;
-};
+std::shared_ptr<detail::blob_session_manager> service::session_manager_;
 
 } // namespace

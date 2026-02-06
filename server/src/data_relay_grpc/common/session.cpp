@@ -17,8 +17,7 @@
 #include <list>
 
 #include <data_relay_grpc/common/session.h>
-
-#include "session_impl.h"
+#include <data_relay_grpc/common/detail/session_impl.h>
 
 namespace data_relay_grpc::common {
 

@@ -24,10 +24,11 @@
 #include <mutex>
 
 #include <data_relay_grpc/common/session.h>
-// #include <data_relay_grpc/blob_relay/service.h>
-#include "session_manager.h"
+#include <data_relay_grpc/common/detail/session_manager.h>
 
-namespace data_relay_grpc::common {
+namespace data_relay_grpc::common::detail {
+
+class blob_session_manager;
 
 /**
  * @brief blob session impl class
@@ -112,18 +113,9 @@ public:
 
     void delete_blob_file(blob_id_type bid);
 
-    std::optional<transaction_id_type> get_transaction_id() {
-        return transaction_id_opt_;
-    }
+    [[nodiscard]] std::optional<transaction_id_type> get_transaction_id() const noexcept;
 
-    bool reserve_session_store(blob_id_type bid, std::size_t size) {
-        std::lock_guard<std::mutex> lock(mtx_);
-        if (session_store_.reserve(size)) {
-            blobs_.at(bid).second += size;
-            return true;
-        }
-        return false;
-    }
+    bool reserve_session_store(blob_id_type bid, std::size_t size);
 
 private:
     session_id_type session_id_;

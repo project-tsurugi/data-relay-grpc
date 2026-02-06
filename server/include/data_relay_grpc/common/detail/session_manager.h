@@ -23,11 +23,11 @@
 #include <mutex>
 
 #include <data_relay_grpc/common/api.h>
-#include "session_store.h"
-#include "session_impl.h"
-#include "tag_generator.h"
+#include <data_relay_grpc/common/tag_generator.h>
+#include <data_relay_grpc/common/detail/session_store.h>
+#include <data_relay_grpc/common/detail/session_impl.h>
 
-namespace data_relay_grpc::common {
+namespace data_relay_grpc::common::detail {
 
 /**
  * @brief a class of manager for blob session

@@ -18,7 +18,7 @@
 #include <filesystem>
 #include <atomic>
 
-namespace data_relay_grpc::common {
+namespace data_relay_grpc::common::detail {
 
 /**
  * @brief blob session
@@ -63,6 +63,7 @@ public:
     std::atomic<std::size_t> current_size_{};
 
     friend class blob_session_impl;
+    friend class blob_session_manager;
     std::filesystem::path create_blob_file(std::uint64_t new_blob_id, const std::string& prefix) {
         std::filesystem::path file_path = directory_;
         return directory_ / std::filesystem::path(prefix + "_" + std::to_string(new_blob_id));

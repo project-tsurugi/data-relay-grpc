@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#include "session_manager.h"
-#include "session_impl.h"
+#include <data_relay_grpc/common/detail/session_manager.h>
+#include <data_relay_grpc/common/detail/session_impl.h>
 
-namespace data_relay_grpc::common {
+namespace data_relay_grpc::common::detail {
 
 blob_session::blob_id_type blob_session_impl::add(blob_session::blob_path_type path) {
     std::lock_guard<std::mutex> lock(mtx_);
@@ -66,6 +66,19 @@ void blob_session_impl::delete_blob_file(blob_id_type bid) {
         blobs_.erase(itr);
         return;
     }
+}
+
+std::optional<blob_session::transaction_id_type> blob_session_impl:: get_transaction_id() const noexcept {
+    return transaction_id_opt_;
+}
+
+bool blob_session_impl::reserve_session_store(blob_id_type bid, std::size_t size) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    if (session_store_.reserve(size)) {
+        blobs_.at(bid).second += size;
+        return true;
+    }
+    return false;
 }
 
 } // namespace

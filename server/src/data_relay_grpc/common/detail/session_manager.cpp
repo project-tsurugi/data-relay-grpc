@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include "session_manager.h"
+#include <data_relay_grpc/common/detail/session_manager.h>
 
-namespace data_relay_grpc::common {
+namespace data_relay_grpc::common::detail {
 
 blob_session_manager::blob_session_manager(const api& api, const std::string& directory, std::size_t quota, bool dev_accept_mock_tag)
     : api_(api), session_store_(directory, quota), dev_accept_mock_tag_(dev_accept_mock_tag) {
