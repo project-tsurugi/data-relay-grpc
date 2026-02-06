@@ -48,7 +48,7 @@ TEST_F(session_store_directory_symbolic_link_test, symbolic_link) {
     std::filesystem::create_symlink(d, l);
 
     blob_relay::service_configuration conf_for_test {
-        l,      // session_store (symbolik link to a directory)
+        l,      // session_store (symbolic link to a directory)
         0,      // session_quota_size
         false,  // local_enabled
         false,  // local_upload_copy_file

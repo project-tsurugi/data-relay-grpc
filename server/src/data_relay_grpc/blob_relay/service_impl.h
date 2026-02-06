@@ -33,7 +33,7 @@ class local_service;
  */
 class blob_relay_service_impl {
 public:
-    blob_relay_service_impl(common::api const& api, service_configuration const& conf);
+    blob_relay_service_impl(common::api const& api, service_configuration const& conf, std::shared_ptr<common::blob_session_manager>& session_manager);
 
     [[nodiscard]] blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt);
 
@@ -45,9 +45,9 @@ public:
 private:
     common::api api_;
     service_configuration configuration_;
+    std::shared_ptr<common::blob_session_manager>& session_manager_;
     std::unique_ptr<streaming_service> streaming_service_;
 
-    std::shared_ptr<common::blob_session_manager> session_manager_{};
     std::unique_ptr<local_service> local_service_{};
     std::vector<::grpc::Service *> services_{};
 
