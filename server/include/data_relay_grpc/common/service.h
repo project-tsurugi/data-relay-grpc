@@ -18,7 +18,10 @@
 #include <optional>
 #include <cstdint>
 
+#include <grpcpp/grpcpp.h>
+
 #include <data_relay_grpc/common/session.h>
+#include <data_relay_grpc/common/detail/session_manager.h>
 
 namespace data_relay_grpc::common {
 
@@ -28,15 +31,16 @@ namespace data_relay_grpc::common {
 class service {
 public:
     /**
-      * @brief Create a new session for BLOB operations.
-      * @param transaction_id The ID of the transaction that owns the session,
-      *    or empty if the session is not associated with any transaction
-      * @return the created session object
+      * @brief Returns a vector of gRPC service to be registerd to a gRPC server.
+      * @return the vector of gRPC service
       */
-    [[nodiscard]] virtual blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt) = 0;
+    [[nodiscard]] const virtual std::vector<::grpc::Service *>& services() const noexcept = 0;
 
-protected:
-    static std::shared_ptr<blob_session_manager> session_manager_;
+    /**
+      * @brief Returns the session manager used by data relay services.
+      * @return the session manager
+      */
+    [[nodiscard]] virtual common::detail::blob_session_manager& get_session_manager() const noexcept = 0;
 };
 
 } // namespace

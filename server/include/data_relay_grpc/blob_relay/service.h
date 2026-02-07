@@ -20,8 +20,6 @@
 #include <filesystem>
 #include <memory>
 
-#include <grpcpp/grpcpp.h>
-
 #include <data_relay_grpc/common/session.h>
 #include <data_relay_grpc/common/api.h>
 #include <data_relay_grpc/common/service.h>
@@ -41,11 +39,6 @@ public:
     using api = data_relay_grpc::common::api;
 
     /**
-      * @brief Returns a vector of gRPC service.
-      */
-    const std::vector<::grpc::Service *>& services() const noexcept;
-
-    /**
       * @brief Create an object.
       * @param api the api for tag related calculations
       * @param conf the service_configuration
@@ -57,12 +50,17 @@ public:
      */
     virtual ~blob_relay_service() = default;
 
+    /**
+      * @brief Create a new session for BLOB operations.
+      * @param transaction_id The ID of the transaction that owns the session,
+      *    or empty if the session is not associated with any transaction
+      * @return the created session object
+      */
+    [[nodiscard]] blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt);
 
-    [[nodiscard]] blob_session& create_session(std::optional<std::uint64_t> transaction_id = std::nullopt) override;
+    [[nodiscard]] const std::vector<::grpc::Service *>& services() const noexcept override;
 
-
-    // for test purpose only
-    [[nodiscard]] blob_relay_service_impl& impl() const noexcept;
+    [[nodiscard]] common::detail::blob_session_manager& get_session_manager() const noexcept override;
 
 private:
     std::unique_ptr<blob_relay_service_impl, void(*)(blob_relay_service_impl*)> impl_;

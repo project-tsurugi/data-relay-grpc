@@ -28,14 +28,11 @@ static std::unique_ptr<smoketest_support_service> unqp_smoketest_support_service
 }
 #endif
 
-blob_relay_service_impl::blob_relay_service_impl(common::api const& api, service_configuration const& conf, std::shared_ptr<common::blob_session_manager>& session_manager)
+blob_relay_service_impl::blob_relay_service_impl(common::api const& api, service_configuration const& conf)
     : api_(api),
       configuration_(conf),
-      session_manager_(session_manager),
+      session_manager_(api, conf.session_store(), conf.session_quota_size(), conf.dev_accept_mock_tag()),
       streaming_service_(std::make_unique<streaming_service>(session_manager_, configuration_.stream_chunk_size())) {
-#ifdef SMOKE_TEST_SUPPORT
-    smoke_test::unqp_smoketest_support_service = std::make_unique<smoke_test::smoketest_support_service>(session_manager_);
-#endif
     if (streaming_service_) {
         services_.emplace_back(streaming_service_.get());
     }
@@ -44,12 +41,13 @@ blob_relay_service_impl::blob_relay_service_impl(common::api const& api, service
         services_.emplace_back(local_service_.get());
     }
 #ifdef SMOKE_TEST_SUPPORT
+    smoke_test::unqp_smoketest_support_service = std::make_unique<smoke_test::smoketest_support_service>(session_manager_);
     services_.emplace_back(smoke_test::unqp_smoketest_support_service.get());
 #endif
 }
 
 blob_session& blob_relay_service_impl::create_session(std::optional<blob_session::transaction_id_type> transaction_id_opt) {
-    return session_manager_->create_session(transaction_id_opt);
+    return session_manager_.create_session(transaction_id_opt);
 }
 
 std::vector<::grpc::Service *>& blob_relay_service_impl::services() noexcept {
@@ -57,8 +55,8 @@ std::vector<::grpc::Service *>& blob_relay_service_impl::services() noexcept {
 }
 
 // for tests only
-common::blob_session_manager& blob_relay_service_impl::get_session_manager() {
-    return *session_manager_;
+common::detail::blob_session_manager& blob_relay_service_impl::get_session_manager() {
+    return session_manager_;
 }
 
 } // namespace

@@ -20,11 +20,8 @@
 namespace data_relay_grpc::blob_relay {
 
 blob_relay_service::blob_relay_service(api const& api, service_configuration const& conf)
-    : impl_(std::unique_ptr<blob_relay_service_impl, void(*)(blob_relay_service_impl*)>(new blob_relay_service_impl{api, conf, session_manager_}, [](blob_relay_service_impl* e){ delete  e; }))
+    : impl_(std::unique_ptr<blob_relay_service_impl, void(*)(blob_relay_service_impl*)>(new blob_relay_service_impl{api, conf}, [](blob_relay_service_impl* e){ delete  e; }))
 {
-    if (!session_manager_) {
-        session_manager_ = std::make_shared<common::detail::blob_session_manager>(api, conf.session_store(), conf.session_quota_size(), conf.dev_accept_mock_tag());
-    }
 }
 
 blob_session& blob_relay_service::create_session(std::optional<blob_session::transaction_id_type> transaction_id_opt) {
@@ -35,8 +32,8 @@ const std::vector<::grpc::Service *>& blob_relay_service::services() const noexc
     return impl_->services();
 }
 
-blob_relay_service_impl& blob_relay_service::impl() const noexcept {
-    return *impl_;
+common::detail::blob_session_manager& blob_relay_service::get_session_manager() const noexcept {
+    return impl_->get_session_manager();
 }
 
 } // namespace
