@@ -14,7 +14,7 @@ namespace data_relay_grpc::blob_relay {
 
 using data_relay_grpc::common::blob_session;
 
-streaming_service::streaming_service(std::shared_ptr<common::blob_session_manager>& session_manager, std::size_t chunk_size)
+streaming_service::streaming_service(common::detail::blob_session_manager& session_manager, std::size_t chunk_size)
     : session_manager_(session_manager), chunk_size_(chunk_size) {
 }
 
@@ -37,14 +37,14 @@ streaming_service::streaming_service(std::shared_ptr<common::blob_session_manage
             VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", session_id = " << session_id << ", tag = " << blob_tag;
         } else if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kTransactionId) {
             transaction_id = request->transaction_id();
-            session_id = session_manager_->get_session_id(transaction_id);
+            session_id = session_manager_.get_session_id(transaction_id);
             VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", transaction_id = " << transaction_id << ", session_id = " << session_id;
         } else {
             VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
             return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "content_id is neither session_id nor transaction_id");
         }
 
-        auto& session_impl = session_manager_->get_session_impl(session_id);
+        auto& session_impl = session_manager_.get_session_impl(session_id);
         if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kTransactionId) {
             if (auto transaction_id_opt = session_impl.get_transaction_id(); transaction_id_opt) {
                 if (transaction_id_opt.value() != transaction_id) {
@@ -67,7 +67,7 @@ streaming_service::streaming_service(std::shared_ptr<common::blob_session_manage
                 return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "can not find the blob data by the blob_id given");
             }
         } else if (storage_id == LIMESTONE_BLOB_STORE) {
-            path = session_manager_->get_path(blob_id);
+            path = session_manager_.get_path(blob_id);
             VLOG_LP(log_debug) << "going to send BLOB from limestone blob store: path = " << path.string();
         } else {
             VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
@@ -76,7 +76,7 @@ streaming_service::streaming_service(std::shared_ptr<common::blob_session_manage
 
         // should be done after confirming the blob's existence
         if (session_impl.get_tag(blob_id) != blob_tag) {
-            if (!session_manager_->dev_accept_mock_tag() || blob_tag != common::blob_session_manager::MOCK_TAG) {
+            if (!session_manager_.dev_accept_mock_tag() || blob_tag != common::detail::blob_session_manager::MOCK_TAG) {
                 VLOG_LP(log_debug) << "finishes with PERMISSION_DENIED";
                 return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the given tag does not match the desiring value");
             }
@@ -142,7 +142,7 @@ streaming_service::streaming_service(std::shared_ptr<common::blob_session_manage
         blob_size_opt = metadata.blob_size();
     }
     try {
-        auto& session_impl = session_manager_->get_session_impl(request.metadata().session_id());
+        auto& session_impl = session_manager_.get_session_impl(request.metadata().session_id());
         auto pair = session_impl.create_blob_file();
         blob_session::blob_id_type blob_id = pair.first;
         VLOG_LP(log_debug) << "accepted request: session_id = " << request.metadata().session_id() << ", to be create a blob file with blob_id = " << blob_id << " of session storage";

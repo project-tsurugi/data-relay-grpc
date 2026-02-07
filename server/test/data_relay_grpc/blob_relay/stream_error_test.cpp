@@ -4,7 +4,6 @@
 #include <fstream>
 #include <sstream>
 #include <atomic>
-#include <string>
 #include <exception>
 
 #include "test_root.h"
@@ -16,33 +15,22 @@
 
 namespace data_relay_grpc::blob_relay {
 
-static const std::uint64_t tag_for_test = 2468;
-static std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_error_test")};
-static std::uint64_t blob_id_for_test{};
-static common::api api_for_test {
-    [](std::uint64_t bid, std::uint64_t tid) {
-        return tag_for_test;
-    },
-    [](std::uint64_t bid){
-        if (bid == blob_id_for_test) {
-            return helper_->last_path();
-        }
-        return std::filesystem::path{};
-    }
-};
-
 class stream_error_test : public data_relay_grpc::grpc::grpc_server_test_base {
 protected:
     const std::string test_partial_blob{"ABCDEFGHIJKLMNOPQRSTUBWXYZabcdefghijklmnopqrstubwxyz\n"};
     const std::string session_store_name{"session_store"};
     const std::uint64_t transaction_id_for_test = 12345;
+    const std::uint64_t tag_for_test = 2468;
+    std::uint64_t blob_id_for_test{};
+
+    std::unique_ptr<directory_helper> helper_{std::make_unique<directory_helper>("stream_error_test")};
     blob_session* session_{};
 
     void SetUp() override {
         data_relay_grpc::grpc::grpc_server_test_base::SetUp();
         helper_->set_up();
         std::filesystem::create_directory(helper_->path(session_store_name));
-        service_ = std::make_unique<blob_relay_service>(
+        service_ = std::make_unique<blob_relay_service_impl>(
             api_for_test,
             service_configuration{
                 helper_->path(session_store_name),  // session_store
@@ -80,11 +68,23 @@ protected:
     }
 
     common::blob_session_manager& get_session_manager() {
-        return  service_->impl().get_session_manager();
+        return  service_->get_session_manager();
     }
 
 private:
-    std::unique_ptr<blob_relay_service> service_{};
+    common::api api_for_test{
+        [this](std::uint64_t bid, std::uint64_t tid) {
+            return tag_for_test;
+        },
+        [this](std::uint64_t bid){
+            if (bid == blob_id_for_test) {
+                return helper_->last_path();
+            }
+            return std::filesystem::path{};
+        }
+    };
+
+    std::unique_ptr<blob_relay_service_impl> service_{};
     std::uint64_t session_id_{};
     std::uint64_t transaction_id_{};
     std::atomic_uint64_t blob_id_{};

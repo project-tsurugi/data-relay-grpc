@@ -15,7 +15,7 @@ using data_relay_grpc::proto::blob_relay::blob_relay_local::GetLocalResponse;
 
 class local_service final : public BlobRelayLocal::Service {
   public:
-    explicit local_service(std::shared_ptr<common::blob_session_manager>& server);
+    explicit local_service(common::detail::blob_session_manager& server);
     ~local_service() override = default;
 
     local_service(const local_service&) = delete;
@@ -32,7 +32,7 @@ class local_service final : public BlobRelayLocal::Service {
                        PutLocalResponse* response) override;
 
 private:
-    std::shared_ptr<common::blob_session_manager>& session_manager_;
+    common::detail::blob_session_manager& session_manager_;
 };
 
 } // namespace data_relay_grpc::blob_relay
