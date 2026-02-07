@@ -60,7 +60,7 @@ public:
 
     [[nodiscard]] const std::vector<::grpc::Service *>& services() const noexcept override;
 
-    [[nodiscard]] common::detail::blob_session_manager& get_session_manager() const noexcept override;
+    [[nodiscard]] common::blob_session_manager& get_session_manager() const noexcept override;
 
 private:
     std::unique_ptr<blob_relay_service_impl, void(*)(blob_relay_service_impl*)> impl_;
