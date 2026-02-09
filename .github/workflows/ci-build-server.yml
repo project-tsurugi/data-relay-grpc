@@ -6,11 +6,13 @@ on:
       - 'server/**'
       - 'protos/**'
       - '.github/workflows/ci-build-server.yml'
+      - '!**.md'
   pull_request:
     paths:
       - 'server/**'
       - 'protos/**'
       - '.github/workflows/ci-build-server.yml'
+      - '!**.md'
   workflow_dispatch:
     inputs:
       os:
