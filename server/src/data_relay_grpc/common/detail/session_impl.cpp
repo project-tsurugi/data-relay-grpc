@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#include <glog/logging.h>
+#include "data_relay_grpc/logging_helper.h"
+#include "data_relay_grpc/logging.h"
+
 #include <data_relay_grpc/common/detail/session_manager.h>
 #include <data_relay_grpc/common/detail/session_impl.h>
 
@@ -46,13 +50,16 @@ std::pair<blob_session::blob_id_type, std::filesystem::path> blob_session_impl::
 }
 
 blob_session::blob_tag_type blob_session_impl::compute_tag(blob_session::blob_id_type blob_id) const {
+    VLOG_LP(log_debug) << "compute_tag with session_id = " << session_id_ << ", blob_id = " << blob_id;
     return manager_.generate_reference_tag(blob_id, session_id_);
 }
 
 blob_session::blob_tag_type blob_session_impl::get_tag(blob_session::blob_id_type blob_id) const {
     if (transaction_id_opt_) {
+        VLOG_LP(log_debug) << "get_tag with transaction_id = " << transaction_id_opt_.value() << ", blob_id = " << blob_id;
         return manager_.get_tag(blob_id, transaction_id_opt_.value());
     }
+    VLOG_LP(log_debug) << "get_tag with session_id = " << session_id_ << ", blob_id = " << blob_id;
     return manager_.get_tag(blob_id, session_id_);
 }
 

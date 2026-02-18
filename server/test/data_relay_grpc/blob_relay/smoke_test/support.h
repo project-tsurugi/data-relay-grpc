@@ -93,12 +93,12 @@ public:
             }
             blob_file.close();
 
-            auto& session = session_manager_.get_session(session_id);
-            auto bid = session.add(path);
+            auto& session_impl = session_manager_.get_session_impl(session_id);
+            auto bid = session_impl.add(path);
 
             auto* blob_reference = response->mutable_blob_reference();
             blob_reference->set_object_id(bid);
-            blob_reference->set_tag(session.compute_tag(bid));
+            blob_reference->set_tag(session_impl.get_tag(bid));
             return ::grpc::Status(::grpc::StatusCode::OK, "");
         } catch (std::runtime_error &ex) {
             return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, ex.what());
