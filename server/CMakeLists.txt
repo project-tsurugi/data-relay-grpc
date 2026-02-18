@@ -50,8 +50,6 @@ set(RECOVERY_SORTER_KVSLIB ROCKSDB CACHE STRING "using eKVS library at recovery 
 string(TOUPPER $CACHE{RECOVERY_SORTER_KVSLIB} RECOVERY_SORTER_KVSLIB_UPPERCASE)
 option(RECOVERY_SORTER_PUT_ONLY "using put-only method at recovery process (faster)" ON)
 
-find_package(limestone REQUIRED)
-
 find_package(Doxygen)
 find_package(glog REQUIRED)
 find_package(gflags REQUIRED)

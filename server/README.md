@@ -26,11 +26,6 @@ optional packages:
 
 ### Install modules
 
-#### tsurugidb modules
-
-This requires below [tsurugidb](https://github.com/project-tsurugi/tsurugidb) modules to be installed.
-* [limestone](https://github.com/project-tsurugi/limestone)
-
 ## How to build
 
 ```sh

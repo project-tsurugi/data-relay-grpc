@@ -50,7 +50,6 @@ target_link_libraries(${test_target}
         PRIVATE data-relay-grpc
         PRIVATE data-relay-grpc-impl
         PUBLIC gtest
-        PRIVATE limestone
         )
 
 function (add_test_executable source_file)

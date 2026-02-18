@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#include <glog/logging.h>
+#include "data_relay_grpc/logging_helper.h"
+#include "data_relay_grpc/logging.h"
+
 #include <data_relay_grpc/common/detail/session_manager.h>
 
 namespace data_relay_grpc::common::detail {
@@ -81,6 +85,7 @@ blob_session::blob_id_type blob_session_manager::get_new_blob_id() {
 }
 
 blob_session::blob_tag_type blob_session_manager::generate_reference_tag(blob_session::blob_id_type blob_id, blob_session::session_id_type session_id) {
+    VLOG_LP(log_debug) << "invoke generate_reference_tag of tag_generator with session_id = " << session_id_ << ", blob_id = " << blob_id;
     return tag_generator_.generate_reference_tag(blob_id, session_id);
 }
 
