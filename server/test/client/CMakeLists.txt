@@ -29,7 +29,6 @@ target_include_directories(test_client
         )
 
 target_link_libraries(test_client
-        PRIVATE Boost::boost
         PRIVATE gflags::gflags
         PRIVATE grpc++
         PRIVATE grpc

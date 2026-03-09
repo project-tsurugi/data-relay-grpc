@@ -77,10 +77,7 @@ target_include_directories(${package_name}
 
 target_link_libraries(${package_name}
         PUBLIC data-relay-grpc-api
-        PRIVATE Boost::boost
-        PRIVATE Boost::filesystem
-        PRIVATE Boost::thread
-        PRIVATE Boost::container
+#        PRIVATE Boost::boost
         PRIVATE glog::glog
         PRIVATE ${sort_lib}
         PRIVATE grpc++
@@ -122,10 +119,6 @@ target_include_directories(data-relay-grpc-impl
 
 target_link_libraries(data-relay-grpc-impl
         INTERFACE ${package_name}
-        INTERFACE Boost::boost
-        INTERFACE Boost::filesystem
-        INTERFACE Boost::thread
-        INTERFACE Boost::container
         INTERFACE glog::glog
         INTERFACE grpc++
         INTERFACE grpc
