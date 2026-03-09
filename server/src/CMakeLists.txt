@@ -77,7 +77,6 @@ target_include_directories(${package_name}
 
 target_link_libraries(${package_name}
         PUBLIC data-relay-grpc-api
-#        PRIVATE Boost::boost
         PRIVATE glog::glog
         PRIVATE ${sort_lib}
         PRIVATE grpc++
