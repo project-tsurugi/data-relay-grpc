@@ -11,13 +11,14 @@
 #include "blob_relay_smoke_test.grpc.pb.h"
 
 DECLARE_uint32(sleep);
+DECLARE_bool(secure);
 
 namespace data_relay_grpc::blob_relay {
 
 class session {
 public:
     session(const std::string& server_address, const std::optional<uint64_t> transaction_id_opt) : server_address_(server_address) {
-        auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+        auto channel = CreateChannel(server_address_);
         smoke_test::proto::BlobRelaySmokeTestSupport::Stub stub(channel);
         ::grpc::ClientContext context;
 
@@ -44,7 +45,7 @@ public:
         return session_id_;
     }
     void dispose() const {
-        auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+        auto channel = CreateChannel(server_address_);
         smoke_test::proto::BlobRelaySmokeTestSupport::Stub stub(channel);
         ::grpc::ClientContext context;
 
@@ -57,7 +58,7 @@ public:
         }
     }
     std::filesystem::path file_path(std::uint64_t blob_id) {
-        auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+        auto channel = CreateChannel(server_address_);
         smoke_test::proto::BlobRelaySmokeTestSupport::Stub stub(channel);
         ::grpc::ClientContext context;
 
@@ -72,7 +73,7 @@ public:
         return { response.path() };
     }
     std::pair<std::uint64_t, std::uint64_t> create_blob_file_for_download(std::uint64_t size) {
-        auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+        auto channel = CreateChannel(server_address_);
         smoke_test::proto::BlobRelaySmokeTestSupport::Stub stub(channel);
         ::grpc::ClientContext context;
 
@@ -91,6 +92,14 @@ public:
 private:
     std::string server_address_;
     std::uint64_t session_id_{};
+
+    static std::shared_ptr< ::grpc::Channel > CreateChannel(const std::string& server_address) {
+        if (FLAGS_secure) {
+            ::grpc::SslCredentialsOptions opts;
+            return ::grpc::CreateChannel(server_address, ::grpc::SslCredentials(opts));
+        }
+        return ::grpc::CreateChannel(server_address, ::grpc::InsecureChannelCredentials());
+    }
 };
 
 }  // namespace

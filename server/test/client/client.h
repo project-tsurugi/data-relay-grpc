@@ -18,6 +18,7 @@
 #include "data_relay_grpc/proto/blob_relay/blob_relay_streaming.grpc.pb.h"
 
 DECLARE_uint32(fault);
+DECLARE_bool(secure);
 DECLARE_bool(vervose);
 
 using grpc::Channel;
@@ -72,7 +73,7 @@ public:
     }
 
     std::uint64_t put(std::size_t size) {
-        auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+        auto channel = CreateChannel(server_address_);
         proto::blob_relay::blob_relay_streaming::BlobRelayStreaming::Stub stub(channel);
         ::grpc::ClientContext context;
 
@@ -112,7 +113,7 @@ public:
     }
 
     void get(std::uint64_t blob_id, std::uint64_t tag, std::filesystem::path path) {
-        auto channel = ::grpc::CreateChannel(server_address_, ::grpc::InsecureChannelCredentials());
+        auto channel = CreateChannel(server_address_);
         proto::blob_relay::blob_relay_streaming::BlobRelayStreaming::Stub stub(channel);
         ::grpc::ClientContext context;
         proto::blob_relay::blob_relay_streaming::GetStreamingRequest req;
@@ -194,6 +195,14 @@ private:
     std::unique_ptr<proto::blob_relay::blob_relay_streaming::BlobRelayStreaming::Stub> stub_;
     proto::blob_relay::blob_relay_streaming::PutStreamingResponse res_;
     test_blob reference_{};
+
+    static std::shared_ptr< ::grpc::Channel > CreateChannel(const std::string& server_address) {
+        if (FLAGS_secure) {
+            ::grpc::SslCredentialsOptions opts;
+            return ::grpc::CreateChannel(server_address, ::grpc::SslCredentials(opts));
+        }
+        return ::grpc::CreateChannel(server_address, ::grpc::InsecureChannelCredentials());
+    }
 };
 
 }  // namespace

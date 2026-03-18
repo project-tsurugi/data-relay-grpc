@@ -18,6 +18,7 @@ DEFINE_int64(get_size, -1, "blob size for Get operarion");
 DEFINE_bool(vervose, false, "print vervose log");
 DEFINE_uint32(sleep, 0, "sleep before session close");
 DEFINE_uint32(fault, 0, "fault mode");
+DEFINE_bool(secure, false, "use secure gRPC connection");
 
 static std::vector<std::thread> threads{};
 static std::atomic_uint64_t job_id{};
