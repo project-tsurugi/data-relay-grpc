@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -69,7 +69,7 @@ jobs:
           ctest --verbose
 
       - name: Verify
-        uses: project-tsurugi/tsurugi-annotations-action@v1
+        uses: project-tsurugi/tsurugi-annotations-action@v2
         if: always()
         with:
           ctest_input: './server/build/**/*_gtest_result.xml'
@@ -103,7 +103,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -130,7 +130,7 @@ jobs:
       #     ninja doxygen 2> >(tee doxygen-error.log)
 
       - name: Verify
-        uses: project-tsurugi/tsurugi-annotations-action@v1
+        uses: project-tsurugi/tsurugi-annotations-action@v2
         if: always()
         with:
           clang_tidy_input: './server/build/clang-tidy.log'
