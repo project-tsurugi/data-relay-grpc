@@ -14,6 +14,8 @@ file(GLOB PROTO_FILES "${PROTO_DIR}/data_relay_grpc/proto/blob_relay/*.proto")
 # Generate protobuf and gRPC files
 find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
 
+# prior to CMake 3.31, protobuf_generate has a bug when processing files outside the project's top dir
+if(CMAKE_VERSION VERSION_LESS "3.31")
 ############################################################################################################################
 # add_custom_target(build_protos DEPENDS ${PROTO_FILES})
 #
@@ -24,19 +26,25 @@ find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
 # data-relay-grpc/server/build/src/data_relay_grpc/proto/blob_relay/blob_relay_local.pb.cc:192:6: error: ‘::descriptor_table_data_5frelay_5fgrpc_2fproto_2fblob_5frelay_2fblob_5freference_2eproto’ has not been declared
 # 192 |   &::descriptor_table_data_5frelay_5fgrpc_2fproto_2fblob_5frelay_2fblob_5freference_2eproto,
 ############################################################################################################################
-add_custom_target(generated_protos DEPENDS ${PROTO_FILES})
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/src/protos)
-protobuf_generate(TARGET generated_protos LANGUAGE cpp OUT_VAR GENERATED_PROTO_FILES PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/src/protos PROTOS ${PROTO_FILES} IMPORT_DIRS ${PROTO_DIR})
-protobuf_generate(TARGET generated_protos LANGUAGE grpc OUT_VAR GENERATED_GRPC_FILES PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/src/protos PROTOS ${PROTO_FILES} IMPORT_DIRS ${PROTO_DIR} GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc PLUGIN "protoc-gen-grpc=${GRPC_CPP_PLUGIN}")
+  add_custom_target(generated_protos DEPENDS ${PROTO_FILES})
+  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/src/protos)
+  protobuf_generate(TARGET generated_protos LANGUAGE cpp OUT_VAR GENERATED_PROTO_FILES PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/src/protos PROTOS ${PROTO_FILES} IMPORT_DIRS ${PROTO_DIR})
+  protobuf_generate(TARGET generated_protos LANGUAGE grpc OUT_VAR GENERATED_GRPC_FILES PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/src/protos PROTOS ${PROTO_FILES} IMPORT_DIRS ${PROTO_DIR} GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc PLUGIN "protoc-gen-grpc=${GRPC_CPP_PLUGIN}")
 
-add_custom_target(build_protos DEPENDS generated_protos)
-add_custom_command(
-  TARGET build_protos
-  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/src/data_relay_grpc/proto/blob_relay ${CMAKE_BINARY_DIR}/protos/data_relay_grpc/proto/blob_relay
-  COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/src/protos/data_relay_grpc/proto/blob_relay/*.pb.h" ${CMAKE_BINARY_DIR}/src/data_relay_grpc/proto/blob_relay
-  COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/src/protos/data_relay_grpc/proto/blob_relay/*.pb.cc" ${CMAKE_BINARY_DIR}/protos/data_relay_grpc/proto/blob_relay
-)
+  add_custom_target(build_protos DEPENDS generated_protos)
+  add_custom_command(
+    TARGET build_protos
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/src/data_relay_grpc/proto/blob_relay ${CMAKE_BINARY_DIR}/protos/data_relay_grpc/proto/blob_relay
+    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/src/protos/data_relay_grpc/proto/blob_relay/*.pb.h" ${CMAKE_BINARY_DIR}/src/data_relay_grpc/proto/blob_relay
+    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/src/protos/data_relay_grpc/proto/blob_relay/*.pb.cc" ${CMAKE_BINARY_DIR}/protos/data_relay_grpc/proto/blob_relay
+  )
 ############################################################################################################################
+else()
+  add_custom_target(build_protos DEPENDS ${PROTO_FILES})
+
+  protobuf_generate(TARGET build_protos LANGUAGE cpp OUT_VAR GENERATED_PROTO_FILES PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/src PROTOS ${PROTO_FILES} IMPORT_DIRS ${PROTO_DIR})
+  protobuf_generate(TARGET build_protos LANGUAGE grpc OUT_VAR GENERATED_GRPC_FILES PROTOC_OUT_DIR ${CMAKE_BINARY_DIR}/src PROTOS ${PROTO_FILES} IMPORT_DIRS ${PROTO_DIR} GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc PLUGIN "protoc-gen-grpc=${GRPC_CPP_PLUGIN}")
+endif()
 
 set(PROTO_SRCS)
 foreach(FILE ${GENERATED_PROTO_FILES})
