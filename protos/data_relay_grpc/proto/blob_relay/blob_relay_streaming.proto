@@ -1,6 +1,10 @@
 syntax = "proto3";
 package data_relay_grpc.proto.blob_relay.blob_relay_streaming;
 
+option java_multiple_files = false;
+option java_package = "com.tsurugidb.blob_relay.proto";
+option java_outer_classname = "Streaming";
+
 import "data_relay_grpc/proto/blob_relay/blob_reference.proto";
 
 // request message to download BLOB data by gRPC streaming.

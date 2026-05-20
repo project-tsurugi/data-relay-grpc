@@ -1,6 +1,10 @@
 syntax = "proto3";
 package data_relay_grpc.proto.blob_relay.blob_reference;
 
+option java_multiple_files = false;
+option java_package = "com.tsurugidb.blob_relay.proto";
+option java_outer_classname = "BlobRelayCommon";
+
 message BlobReference {
 
     // the ID of the storage where the BLOB data is stored.
