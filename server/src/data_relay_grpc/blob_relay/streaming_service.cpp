@@ -37,7 +37,13 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
             VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", session_id = " << session_id << ", tag = " << blob_tag;
         } else if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kTransactionId) {
             transaction_id = request->transaction_id();
-            session_id = session_manager_.get_session_id(transaction_id);
+            try {
+                session_id = session_manager_.get_session_id(transaction_id);
+            } catch (std::out_of_range &ex) {
+                VLOG_LP(log_debug) << "cannot find any session for the transaction_id (" << transaction_id << "), and thus create a session for the transaction_id";
+                session_manager_.create_session(transaction_id);
+                session_id = session_manager_.get_session_id(transaction_id);
+            }
             VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", transaction_id = " << transaction_id << ", session_id = " << session_id;
         } else {
             VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
@@ -110,9 +116,6 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
             VLOG_LP(log_debug) << "finishes with NOT_FOUND";
             return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "an error occurred while reading the blob file");
         }
-    } catch (std::out_of_range &ex) {
-        VLOG_LP(log_debug) << "finishes with NOT_FOUND";
-        return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, ex.what());
     } catch (std::exception &ex) {
         VLOG_LP(log_debug) << "finishes with INTERNAL";
         return ::grpc::Status(::grpc::StatusCode::INTERNAL, ex.what());
