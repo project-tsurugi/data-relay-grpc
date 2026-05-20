@@ -173,7 +173,8 @@ TEST_F(stream_error_test, get_invalid_tag) {
     EXPECT_EQ(status.error_code(), ::grpc::StatusCode::PERMISSION_DENIED);
 }
 
-TEST_F(stream_error_test, get_no_session) {
+// DISABLED as create a session if no blob session corresponding to the transaction_id exists in Get() processing
+TEST_F(stream_error_test, DISABLED_get_no_session) {
     start_server();
     set_blob_data();
 
