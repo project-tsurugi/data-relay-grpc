@@ -70,10 +70,15 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
                 VLOG_LP(log_debug) << "going to send BLOB from sessin storage: path = " << path.string();
             } else {
                 VLOG_LP(log_debug) << "finishes with NOT_FOUND";
-                return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "can not find the blob data by the blob_id given");
+                return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "cannot find the blob data by the blob_id given");
             }
         } else if (storage_id == LIMESTONE_BLOB_STORE) {
             path = session_manager_.get_path(blob_id);
+            std::error_code ec{};
+            if (!std::filesystem::exists(path, ec)) {
+                VLOG_LP(log_debug) << "finishes with NOT_FOUND";
+                return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "cannot find the blob data by the blob_id given");
+            }
             VLOG_LP(log_debug) << "going to send BLOB from limestone blob store: path = " << path.string();
         } else {
             VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
