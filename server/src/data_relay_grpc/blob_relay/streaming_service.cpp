@@ -31,6 +31,7 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
         blob_session::transaction_id_type transaction_id{};
         blob_session::blob_id_type blob_id = request->blob().object_id();
         blob_session::blob_tag_type blob_tag = request->blob().tag();
+        bool raw_transaction{};
         auto storage_id = request->blob().storage_id();
         if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kSessionId) {
             session_id = request->session_id();
@@ -41,8 +42,7 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
                 session_id = session_manager_.get_session_id(transaction_id);
             } catch (std::out_of_range &ex) {
                 VLOG_LP(log_debug) << "cannot find any session for the transaction_id (" << transaction_id << "), and thus create a session for the transaction_id";
-                session_manager_.create_session(transaction_id);
-                session_id = session_manager_.get_session_id(transaction_id);
+                raw_transaction = true;
             }
             VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", transaction_id = " << transaction_id << ", session_id = " << session_id;
         } else {
@@ -50,8 +50,8 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
             return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "content_id is neither session_id nor transaction_id");
         }
 
-        auto& session_impl = session_manager_.get_session_impl(session_id);
-        if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kTransactionId) {
+        if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kTransactionId && !raw_transaction) {
+            auto& session_impl = session_manager_.get_session_impl(session_id);
             if (auto transaction_id_opt = session_impl.get_transaction_id(); transaction_id_opt) {
                 if (transaction_id_opt.value() != transaction_id) {
                     VLOG_LP(log_debug) << "finishes with PERMISSION_DENIED";
@@ -65,10 +65,16 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
 
         blob_session::blob_path_type path{};
         if (storage_id == SESSION_STORAGE_ID) {
-            if (auto path_opt = session_impl.find(blob_id); path_opt) {
-                path = path_opt.value();
-                VLOG_LP(log_debug) << "going to send BLOB from sessin storage: path = " << path.string();
-            } else {
+            bool succeeded{};
+            if (!raw_transaction) {
+                auto& session_impl = session_manager_.get_session_impl(session_id);
+                if (auto path_opt = session_impl.find(blob_id); path_opt) {
+                    path = path_opt.value();
+                    VLOG_LP(log_debug) << "going to send BLOB from sessin storage: path = " << path.string();
+                    succeeded = true;
+                }
+            }
+            if (!succeeded) {
                 VLOG_LP(log_debug) << "finishes with NOT_FOUND";
                 return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "cannot find the blob data by the blob_id given");
             }
@@ -86,7 +92,7 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
         }
 
         // should be done after confirming the blob's existence
-        if (session_impl.get_tag(blob_id) != blob_tag) {
+        if (session_manager_.get_tag(blob_id, transaction_id) != blob_tag) {
             if (!session_manager_.dev_accept_mock_tag() || blob_tag != common::detail::blob_session_manager::MOCK_TAG) {
                 VLOG_LP(log_debug) << "finishes with PERMISSION_DENIED";
                 return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the given tag does not match the desiring value");
@@ -94,12 +100,14 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
         }
 
         if (std::filesystem::exists(path)) {
+            VLOG_LP(log_trace) << "start to send BLOB";
             GetStreamingResponse response{};
 
             // metadata
             auto* metadata = response.mutable_metadata();
             metadata->set_blob_size(std::filesystem::file_size(path));
             writer->Write(response);
+            VLOG_LP(log_trace) << "send metadata done";
 
             // chunk
             response.clear_metadata();
@@ -110,10 +118,12 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
                 ifs.read(s.data(), s.length());
                 auto size = ifs.gcount();
                 if (size == 0) {
+                    VLOG_LP(log_trace) << "send chunk done";
                     return ::grpc::Status(::grpc::StatusCode::OK, "");
                 }
                 response.set_chunk(s.data(), size);
                 writer->Write(response);
+                VLOG_LP(log_trace) << "send chunk, size = " << chunk_size_;
             }
             VLOG_LP(log_debug) << "finishes normally";
             return ::grpc::Status(::grpc::StatusCode::OK, "");
