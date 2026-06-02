@@ -28,7 +28,7 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
 
     try {
         blob_session::session_id_type session_id{};
-        blob_session::transaction_id_type transaction_id{};
+        std::optional<blob_session::transaction_id_type> transaction_id{};
         blob_session::blob_id_type blob_id = request->blob().object_id();
         blob_session::blob_tag_type blob_tag = request->blob().tag();
         bool raw_transaction{};
@@ -39,12 +39,12 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
         } else if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kTransactionId) {
             transaction_id = request->transaction_id();
             try {
-                session_id = session_manager_.get_session_id(transaction_id);
+                session_id = session_manager_.get_session_id(transaction_id.value());
             } catch (std::out_of_range &ex) {
-                VLOG_LP(log_debug) << "cannot find any session for the transaction_id (" << transaction_id << "), and thus create a session for the transaction_id";
+                VLOG_LP(log_debug) << "cannot find any session for the transaction_id (" << transaction_id.value() << "), and thus create a session for the transaction_id";
                 raw_transaction = true;
             }
-            VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", transaction_id = " << transaction_id << ", session_id = " << session_id;
+            VLOG_LP(log_debug) << "accepted request: blob_id = " <<  blob_id << " of " << storage_name(storage_id) << ", transaction_id = " << transaction_id.value() << ", session_id = " << session_id;
         } else {
             VLOG_LP(log_debug) << "finishes with INVALID_ARGUMENT";
             return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "content_id is neither session_id nor transaction_id");
@@ -53,7 +53,7 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
         if (request->context_id_case() == GetStreamingRequest::ContextIdCase::kTransactionId && !raw_transaction) {
             auto& session_impl = session_manager_.get_session_impl(session_id);
             if (auto transaction_id_opt = session_impl.get_transaction_id(); transaction_id_opt) {
-                if (transaction_id_opt.value() != transaction_id) {
+                if (transaction_id_opt.value() != transaction_id.value()) {
                     VLOG_LP(log_debug) << "finishes with PERMISSION_DENIED";
                     return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "transaction_id does not match with that of the session");
                 }
@@ -92,7 +92,14 @@ streaming_service::streaming_service(common::detail::blob_session_manager& sessi
         }
 
         // should be done after confirming the blob's existence
-        if (session_manager_.get_tag(blob_id, transaction_id) != blob_tag) {
+        blob_session::blob_tag_type expected_tag{};
+        if (transaction_id) {
+            expected_tag = session_manager_.get_tag(blob_id, transaction_id.value());
+        } else {
+            auto& session_impl = session_manager_.get_session_impl(session_id);
+            expected_tag = session_impl.get_tag(blob_id);
+        }
+        if (expected_tag != blob_tag) {
             if (!session_manager_.dev_accept_mock_tag() || blob_tag != common::detail::blob_session_manager::MOCK_TAG) {
                 VLOG_LP(log_debug) << "finishes with PERMISSION_DENIED";
                 return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED, "the given tag does not match the desiring value");
