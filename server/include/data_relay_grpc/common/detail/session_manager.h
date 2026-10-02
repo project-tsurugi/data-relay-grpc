@@ -33,7 +33,7 @@ namespace data_relay_grpc::common::detail {
 using session_dispose_hook_type = std::function<
     void(
         blob_session::session_id_type session_id
-    ) noexcept
+    )
 >;
 
 /**
