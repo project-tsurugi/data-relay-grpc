@@ -46,8 +46,12 @@ blob_session& blob_session_manager::get_session(blob_session::session_id_type se
 
 void blob_session_manager::dispose(blob_session::session_id_type session_id) {
     {
-        std::lock_guard<std::mutex> lock(hook_mtx_);
-        for(const auto& e: session_dispose_hooks_) {
+        std::vector<session_dispose_hook_type> session_dispose_hooks{};
+        {
+            std::lock_guard<std::mutex> lock(hook_mtx_);
+            session_dispose_hooks = session_dispose_hooks_;
+        }
+        for(const auto& e: session_dispose_hooks) {
             e(session_id);
         }
     }
