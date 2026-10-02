@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <map>
+#include <vector>
 #include <optional>
 #include <filesystem>
 #include <atomic>
@@ -28,6 +29,12 @@
 #include <data_relay_grpc/common/detail/session_impl.h>
 
 namespace data_relay_grpc::common::detail {
+
+using session_dispose_hook_type = std::function<
+    void(
+        blob_session::session_id_type session_id
+    )
+>;
 
 /**
  * @brief a class of manager for blob session
@@ -57,6 +64,8 @@ public:
 
     blob_session::blob_tag_type generate_reference_tag(blob_session::blob_id_type, blob_session::session_id_type);
 
+    void add_session_dispose_hook(const session_dispose_hook_type& hook);
+
     // for test only
     std::size_t session_store_current_size() const noexcept;
 
@@ -71,6 +80,9 @@ private:
     std::map<blob_session::session_id_type, blob_session> blob_sessions_{};
     std::map<blob_session::transaction_id_type, blob_session::session_id_type> blob_session_ids_{};
     mutable std::mutex mtx_{};
+
+    std::vector<session_dispose_hook_type> session_dispose_hooks_{};
+    mutable std::mutex hook_mtx_{};
 
     friend class blob_session_impl;
     blob_session::blob_id_type get_new_blob_id();
