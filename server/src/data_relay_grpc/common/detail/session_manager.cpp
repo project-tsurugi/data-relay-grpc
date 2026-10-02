@@ -45,6 +45,12 @@ blob_session& blob_session_manager::get_session(blob_session::session_id_type se
 }
 
 void blob_session_manager::dispose(blob_session::session_id_type session_id) {
+    {
+        std::lock_guard<std::mutex> lock(hook_mtx_);
+        for(const auto& e: session_dispose_hooks_) {
+            e(session_id);
+        }
+    }
     std::lock_guard<std::mutex> lock(mtx_);
     if (auto&& itrs = blob_sessions_.find(session_id); itrs != blob_sessions_.end()) {
         if(auto transaction_id_opt = itrs->second.impl_->transaction_id_opt_; transaction_id_opt) {
@@ -91,6 +97,11 @@ blob_session::blob_tag_type blob_session_manager::generate_reference_tag(blob_se
 
 std::size_t blob_session_manager::session_store_current_size() const noexcept {
     return session_store_.current_size();
+}
+
+void blob_session_manager::add_session_dispose_hook(const session_dispose_hook_type& hook) {
+    std::lock_guard<std::mutex> lock(hook_mtx_);
+    session_dispose_hooks_.emplace_back(std::move(hook));
 }
 
 } // namespace
