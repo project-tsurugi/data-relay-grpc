@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
+#include <exception>
 #include <glog/logging.h>
+
 #include "data_relay_grpc/logging_helper.h"
 #include "data_relay_grpc/logging.h"
 
@@ -52,7 +54,12 @@ void blob_session_manager::dispose(blob_session::session_id_type session_id) {
             session_dispose_hooks = session_dispose_hooks_;
         }
         for(const auto& e: session_dispose_hooks) {
-            e(session_id);
+            try {
+                e(session_id);
+            } catch (std::exception &ex) {
+                LOG_LP(ERROR) << ex.what();
+                continue;
+            }
         }
     }
     std::lock_guard<std::mutex> lock(mtx_);
